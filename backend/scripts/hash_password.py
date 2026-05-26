@@ -9,9 +9,7 @@ Copy the output into .env as ADMIN_PASSWORD_HASH=<hash>
 To reset a forgotten password: run again, update .env, docker compose restart.
 """
 import getpass
-from passlib.context import CryptContext
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=12)
+import bcrypt
 
 password = getpass.getpass("Password: ")
 confirm = getpass.getpass("Confirm: ")
@@ -24,4 +22,4 @@ if len(password) < 8:
     print("Password must be at least 8 characters.")
     raise SystemExit(1)
 
-print(pwd_context.hash(password))
+print(bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=12)).decode())

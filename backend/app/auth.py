@@ -1,12 +1,10 @@
 import os
 import logging
-from passlib.context import CryptContext
+import bcrypt
 from itsdangerous import TimestampSigner, BadSignature, SignatureExpired
 from fastapi import Request, HTTPException
 
 logger = logging.getLogger(__name__)
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 SESSION_COOKIE = "spread_session"
 SESSION_MAX_AGE = int(os.getenv("SESSION_MAX_AGE_DAYS", "30")) * 86400
@@ -20,7 +18,7 @@ def _signer() -> TimestampSigner:
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    return bcrypt.checkpw(plain.encode(), hashed.encode())
 
 
 def create_session_token() -> str:
