@@ -13,6 +13,7 @@ from app.auth import (
     verify_password, create_session_token, require_admin,
     SESSION_COOKIE, SESSION_MAX_AGE, log_login,
 )
+from app.routers.admin import artists, books, tags, pages, footer
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
@@ -23,6 +24,12 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 COOKIE_SECURE = os.getenv("COOKIE_SECURE", "true").lower() != "false"
+
+app.include_router(artists.router)
+app.include_router(books.router)
+app.include_router(tags.router)
+app.include_router(pages.router)
+app.include_router(footer.router)
 IMAGE_DIR = Path(os.getenv("IMAGE_DIR", "/data/images"))
 IMAGE_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/images", StaticFiles(directory=str(IMAGE_DIR)), name="images")

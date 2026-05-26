@@ -1,44 +1,43 @@
 import { Routes, Route } from "react-router-dom";
-import ThemeToggle from "./components/ThemeToggle";
+import { AuthProvider } from "./hooks/useAuth";
+import AdminLayout from "./admin/AdminLayout";
+import AdminBooks from "./admin/AdminBooks";
+import AdminBookForm from "./admin/AdminBookForm";
+import AdminArtists from "./admin/AdminArtists";
+import AdminArtistForm from "./admin/AdminArtistForm";
+import AdminTags from "./admin/AdminTags";
+import AdminPages from "./admin/AdminPages";
+import AdminFooter from "./admin/AdminFooter";
 
 function Placeholder({ name }) {
-  return (
-    <div style={{ padding: "2rem", color: "var(--text-muted)" }}>
-      {name} — coming soon
-    </div>
-  );
+  return <div style={{ padding: "4rem 2rem", color: "var(--text-muted)", fontSize: "18px" }}>{name}</div>;
 }
 
 export default function App() {
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      {/* Temporary dev header — will be removed; nav lives in footer only */}
-      <div style={{ padding: "1rem", display: "flex", justifyContent: "flex-end", borderBottom: "1px solid var(--border)" }}>
-        <ThemeToggle />
-      </div>
+    <AuthProvider>
+      <Routes>
+        {/* Public — Phase 4 */}
+        <Route path="/" element={<Placeholder name="Gallery" />} />
+        <Route path="/books/:slug" element={<Placeholder name="Book" />} />
+        <Route path="/artists/:slug" element={<Placeholder name="Artist" />} />
 
-      <main style={{ flex: 1 }}>
-        <Routes>
-          <Route path="/" element={<Placeholder name="Gallery" />} />
-          <Route path="/books/:slug" element={<Placeholder name="Book detail" />} />
-          <Route path="/artists/:slug" element={<Placeholder name="Artist" />} />
-          <Route path="/admin/*" element={<Placeholder name="Admin" />} />
-          <Route path="/:slug" element={<Placeholder name="Page" />} />
-        </Routes>
-      </main>
+        {/* Admin */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<AdminBooks />} />
+          <Route path="books/new" element={<AdminBookForm />} />
+          <Route path="books/:id" element={<AdminBookForm />} />
+          <Route path="artists" element={<AdminArtists />} />
+          <Route path="artists/new" element={<AdminArtistForm />} />
+          <Route path="artists/:id" element={<AdminArtistForm />} />
+          <Route path="tags" element={<AdminTags />} />
+          <Route path="pages" element={<AdminPages />} />
+          <Route path="footer" element={<AdminFooter />} />
+        </Route>
 
-      <footer style={{
-        borderTop: "1px solid var(--border)",
-        padding: "1.5rem 2rem",
-        display: "flex",
-        gap: "1.5rem",
-        alignItems: "center",
-        color: "var(--text-muted)",
-        fontSize: "14px",
-      }}>
-        {/* Footer items rendered dynamically in Phase 4 */}
-        <span style={{ opacity: 0.4 }}>footer</span>
-      </footer>
-    </div>
+        {/* Static pages — Phase 4 */}
+        <Route path="/:slug" element={<Placeholder name="Page" />} />
+      </Routes>
+    </AuthProvider>
   );
 }
