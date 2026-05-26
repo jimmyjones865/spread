@@ -1,0 +1,71 @@
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+
+/* JuliaMono — self-host the woff2 if privacy is a concern */
+@font-face {
+  font-family: "JuliaMono";
+  src: url("https://cdn.jsdelivr.net/gh/cormullion/juliamono/webfonts/JuliaMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── CSS custom properties ───────────────────────────────────────────────── */
+
+:root {
+  --font-display: "Inter", sans-serif;
+  --font-body:    "Inter", sans-serif;
+  --font-mono:    "JuliaMono", monospace;
+}
+
+[data-theme="dark"] {
+  --bg:           #2E3440;
+  --bg-elevated:  #3B4252;
+  --bg-highlight: #434C5E;
+  --border:       #4C566A;
+  --text:         #E5E9F0;
+  --text-muted:   #D8DEE9;
+  --text-bright:  #ECEFF4;
+  --accent:       #88C0D0;
+  --accent-dim:   #5E81AC;
+  --danger:       #BF616A;
+}
+
+[data-theme="light"] {
+  --bg:           #ECEFF4;
+  --bg-elevated:  #E5E9F0;
+  --bg-highlight: #D8DEE9;
+  --border:       #D8DEE9;
+  --text:         #2E3440;
+  --text-muted:   #4C566A;
+  --text-bright:  #2E3440;
+  --accent:       #5E81AC;
+  --accent-dim:   #81A1C1;
+  --danger:       #BF616A;
+}
+
+/* ── Base ────────────────────────────────────────────────────────────────── */
+
+html {
+  font-family: var(--font-body);
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+code, kbd, pre, .mono {
+  font-family: var(--font-mono);
+}
