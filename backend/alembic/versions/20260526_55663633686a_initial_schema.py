@@ -54,6 +54,7 @@ def upgrade() -> None:
     sa.Column('url', sa.String(), nullable=False),
     sa.Column('scraped_at', sa.DateTime(), nullable=False),
     sa.Column('content', sa.Text(), nullable=False),
+    sa.Column('book_id', sa.Integer(), sa.ForeignKey('books.id', ondelete='SET NULL'), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('url')
     )
