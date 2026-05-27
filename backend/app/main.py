@@ -119,9 +119,18 @@ async def health():
     return {"ok": True}
 
 
-# SPA — must be last; html=True serves index.html for unknown paths (client-side routing)
-# and correctly serves root-level files like favicon.png and fonts.
 STATIC_DIR = Path("static")
 
-if STATIC_DIR.exists() and (STATIC_DIR / "index.html").exists():
-    app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="spa")
+
+@app.get("/{full_path:path}")
+async def spa(full_path: str):
+    # Serve real files (favicon, fonts, assets) when they exist; fall back to
+    # index.html so React Router handles all client-side routes (e.g. /admin).
+    if STATIC_DIR.exists():
+        file_path = STATIC_DIR / full_path
+        if file_path.is_file():
+            return FileResponse(str(file_path))
+        index = STATIC_DIR / "index.html"
+        if index.exists():
+            return FileResponse(str(index))
+    raise HTTPException(404)
