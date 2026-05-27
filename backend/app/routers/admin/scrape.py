@@ -26,9 +26,9 @@ IMG_EXT_RE = re.compile(
     re.IGNORECASE,
 )
 
-# For raw HTML parsing: image URLs in <a href> anchors and data-* lazy-load attrs
+# Matches http(s):// or protocol-relative // image URLs
 _HTML_IMG_RE = re.compile(
-    r'^https?://[^\s"\'<>]+\.(?:jpg|jpeg|png|webp|gif)(?:[?#][^\s"\'<>]*)?$',
+    r'^(?:https?:)?//[^\s"\'<>{}]+\.(?:jpg|jpeg|png|webp|gif)(?:[?#][^\s"\'<>]*)?$',
     re.IGNORECASE,
 )
 _DATA_ATTRS = {
@@ -36,34 +36,78 @@ _DATA_ATTRS = {
     "data-full", "data-lazy-src", "data-hi-res", "data-image",
 }
 
+# Shopify/CDN patterns that indicate a resized variant, not the full-res original
+_SIZE_SUFFIX_RE = re.compile(r'_\d+x\d*\.', re.IGNORECASE)  # _300x.jpg, _1024x768.jpg
+
+
+def _is_sized_variant(url: str) -> bool:
+    """True if URL is a CDN-resized variant rather than the full-res original."""
+    if re.search(r'[?&]width=\d+', url, re.IGNORECASE):
+        return True
+    if _SIZE_SUFFIX_RE.search(url):
+        return True
+    return False
+
+
+def _normalize_url(url: str) -> str:
+    """Normalize protocol-relative URLs to https."""
+    return url if url.startswith("http") else "https:" + url
+
 
 class _ImageLinkParser(_HTMLParser):
-    """Finds full-res image URLs that Jina misses:
-    - <a href="full.jpg"><img src="thumb.jpg"> patterns (lightbox anchors)
-    - data-src / data-zoom / data-original etc. (lazy-load attributes)
+    """Extracts full-res image URLs that Jina's markdown conversion misses:
+    - <a href="full.jpg"><img...> lightbox anchor patterns
+    - data-src / data-zoom / data-original etc. lazy-load attributes
+    - Image URLs embedded in <script> JSON blobs (e.g. Shopify product data)
+
+    Filters out Shopify _{width}x template placeholders and CDN resize variants.
     """
 
     def __init__(self):
         super().__init__()
         self.urls: list[str] = []
         self._a_href: str | None = None
+        self._in_script = False
+        self._script_chunks: list[str] = []
 
     def handle_starttag(self, tag, attrs):
         attr_dict = dict(attrs)
         if tag == "a":
             href = attr_dict.get("href") or ""
-            self._a_href = href if _HTML_IMG_RE.match(href) else None
+            if href and _HTML_IMG_RE.match(href) and "{" not in href and not _is_sized_variant(href):
+                self._a_href = _normalize_url(href)
+            else:
+                self._a_href = None
         elif tag in ("img", "source"):
             if self._a_href:
                 self.urls.append(self._a_href)
             for attr in _DATA_ATTRS:
                 val = attr_dict.get(attr) or ""
-                if val and _HTML_IMG_RE.match(val):
-                    self.urls.append(val)
+                if val and _HTML_IMG_RE.match(val) and "{" not in val and not _is_sized_variant(val):
+                    self.urls.append(_normalize_url(val))
+        elif tag == "script":
+            self._in_script = True
+            self._script_chunks = []
+
+    def handle_data(self, data):
+        if self._in_script:
+            self._script_chunks.append(data)
 
     def handle_endtag(self, tag):
         if tag == "a":
             self._a_href = None
+        elif tag == "script":
+            self._in_script = False
+            script_text = "".join(self._script_chunks).replace("\\/", "/")
+            # Extract image URLs embedded in JSON/JS (e.g. Shopify product media array)
+            for m in re.finditer(
+                r'(?:https?:)?(//([\w.-]+)/[^\s"\'<>{}]+\.(?:jpg|jpeg|png|webp|gif))(?:[?#][^\s"\'<>]*)?',
+                script_text, re.IGNORECASE,
+            ):
+                url = _normalize_url(m.group(0))
+                if "{" not in url and not _is_sized_variant(url):
+                    self.urls.append(url)
+            self._script_chunks = []
 
 
 def _extract_html_image_urls(html_text: str) -> list[str]:
@@ -162,7 +206,10 @@ async def scrape(body: ScrapeRequest, db: Session = Depends(get_db)):
     markdown = jina_resp.text
     parsed_data = _parse_jina_markdown(markdown)
 
-    # Augment with URLs from raw HTML that Jina's markdown conversion drops
+    # Augment with URLs from raw HTML that Jina's markdown conversion drops:
+    # - <a href="full.jpg"><img> lightbox anchors
+    # - data-src / data-zoom / etc. lazy-load attributes (sans template placeholders)
+    # - Script JSON blobs (e.g. Shopify product media arrays)
     if not isinstance(html_resp, Exception) and html_resp.is_success:
         html_urls = _extract_html_image_urls(html_resp.text)
         seen_bases = {_base_url(u) for u in parsed_data["image_urls"]}
