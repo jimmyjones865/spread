@@ -1,5 +1,4 @@
 import asyncio
-from urllib.parse import urlparse
 
 import httpx
 from fastapi import APIRouter, Depends
@@ -18,13 +17,11 @@ class ImageMetaRequest(BaseModel):
 
 
 async def _head_one(client: httpx.AsyncClient, url: str) -> dict:
-    safe, resolved = is_safe_url(url)
+    safe, _ = is_safe_url(url)
     if not safe:
         return {"url": url, "content_length": None}
     try:
-        parsed = urlparse(url)
-        target = url.replace(parsed.netloc, resolved, 1)
-        r = await client.head(target, headers={"Host": parsed.netloc}, follow_redirects=False)
+        r = await client.head(url, follow_redirects=False)
         cl = r.headers.get("content-length")
         return {"url": url, "content_length": int(cl) if cl and cl.isdigit() else None}
     except Exception:

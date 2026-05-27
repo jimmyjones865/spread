@@ -37,7 +37,7 @@ export default function AdminTags() {
   }
 
   return (
-    <div style={{ maxWidth: "500px" }}>
+    <div style={{ maxWidth: "760px" }}>
       <h1 style={h1}>Tags</h1>
 
       {error && <p style={{ color: "var(--danger)", fontSize: "14px" }}>{error}</p>}
@@ -58,7 +58,7 @@ export default function AdminTags() {
         <tbody>
           {tags.map(tag => (
             <tr key={tag.id} style={{ borderBottom: "1px solid var(--border)" }}>
-              <td style={{ padding: "0.5rem" }}>
+              <td style={{ padding: "0.6rem 0.5rem" }}>
                 {editId === tag.id ? (
                   <input
                     value={editName}
@@ -68,11 +68,11 @@ export default function AdminTags() {
                     onKeyDown={e => { if (e.key === "Enter") save(tag.id); if (e.key === "Escape") setEditId(null); }}
                   />
                 ) : (
-                  <span style={{ fontSize: "14px", color: "var(--text)" }}>{tag.name}</span>
+                  <>
+                    <div style={{ fontSize: "14px", color: "var(--text)", fontWeight: 500 }}>{tag.name}</div>
+                    <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>{tag.book_count} {tag.book_count === 1 ? "book" : "books"}</div>
+                  </>
                 )}
-              </td>
-              <td style={{ padding: "0.5rem", fontSize: "12px", color: "var(--text-muted)", width: 60 }}>
-                {tag.book_count} {tag.book_count === 1 ? "book" : "books"}
               </td>
               <td style={{ padding: "0.5rem", textAlign: "right" }}>
                 {editId === tag.id ? (

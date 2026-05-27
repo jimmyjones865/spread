@@ -26,7 +26,7 @@ export default function AdminBooks() {
   }
 
   return (
-    <div>
+    <div style={{ maxWidth: "760px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
         <h1 style={h1}>Books</h1>
         <div style={{ display: "flex", gap: "0.5rem" }}>

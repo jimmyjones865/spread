@@ -29,7 +29,7 @@ export default function AdminArtists() {
   }
 
   return (
-    <div>
+    <div style={{ maxWidth: "760px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
         <h1 style={h1}>Artists</h1>
         <button onClick={() => navigate("/admin/artists/new")} style={primaryBtn}>+ New artist</button>

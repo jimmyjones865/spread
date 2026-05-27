@@ -259,8 +259,12 @@ function TextBlock({ text, onAssign }) {
   const preview = text.length > 200 && !expanded ? text.slice(0, 200) + "…" : text;
 
   function handleAssign(field) {
-    onAssign(field);
-    setAssigned(prev => prev.includes(field) ? prev : [...prev, field]);
+    if (assigned.includes(field)) {
+      setAssigned(prev => prev.filter(f => f !== field));
+    } else {
+      onAssign(field);
+      setAssigned(prev => [...prev, field]);
+    }
   }
 
   const isAssigned = assigned.length > 0;
