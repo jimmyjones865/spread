@@ -187,7 +187,7 @@ function Lightbox({ images, idx, onClose, onPrev, onNext }) {
       <img
         src={images[idx].url}
         alt=""
-        onClick={e => e.stopPropagation()}
+        onClick={e => { e.stopPropagation(); setZoomed(z => !z); }}
         style={{
           display: "block",
           userSelect: "none",
@@ -197,7 +197,6 @@ function Lightbox({ images, idx, onClose, onPrev, onNext }) {
             : { maxHeight: "92vh", maxWidth: "90vw", objectFit: "contain" }
           ),
         }}
-        onDoubleClick={e => { e.stopPropagation(); setZoomed(z => !z); }}
       />
 
       {/* Next */}
