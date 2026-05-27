@@ -80,7 +80,8 @@ export default {
   reorderFooter:     (ids)      => post("/api/admin/footer/reorder", { ids }),
 
   // Scrape
-  scrape:            (url, force = false) => post("/api/admin/scrape", { url, force }),
+  scrape:            (url, force = false, bookId = null) => post("/api/admin/scrape", { url, force, book_id: bookId }),
+  getBookScrapes:    (bookId) => get(`/api/admin/scrape?book_id=${bookId}`),
 
   // Download image from URL
   downloadImage: (bookId, url, role) =>

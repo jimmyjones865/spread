@@ -106,6 +106,7 @@ class RawScrape(Base):
     url = Column(String, nullable=False, unique=True)
     scraped_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     content = Column(Text, nullable=False)
+    book_id = Column(Integer, ForeignKey("books.id", ondelete="SET NULL"), nullable=True)
 
 
 class Tag(Base):

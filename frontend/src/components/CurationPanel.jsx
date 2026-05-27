@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import api from "../api";
 
 export default function CurationPanel({ bookId, onImagesAdded, onAddToBook }) {
@@ -18,6 +18,12 @@ export default function CurationPanel({ bookId, onImagesAdded, onAddToBook }) {
   const [addError, setAddError] = useState(null);
   const [addDone, setAddDone] = useState(false);
 
+  const [history, setHistory] = useState([]);
+
+  useEffect(() => {
+    api.getBookScrapes(bookId).then(setHistory).catch(() => {});
+  }, [bookId]);
+
   async function doScrape(force = false) {
     if (!url.trim()) return;
     setScraping(true);
@@ -28,8 +34,9 @@ export default function CurationPanel({ bookId, onImagesAdded, onAddToBook }) {
     setDescBlocks(new Set());
     setColophonBlocks(new Set());
     try {
-      const result = await api.scrape(url.trim(), force);
+      const result = await api.scrape(url.trim(), force, bookId);
       setScrape(result);
+      api.getBookScrapes(bookId).then(setHistory).catch(() => {});
       setImageSizes({});
       if (result.image_urls.length > 0) {
         api.imageMeta(result.image_urls).then(({ sizes }) => {
@@ -125,6 +132,29 @@ export default function CurationPanel({ bookId, onImagesAdded, onAddToBook }) {
           </button>
         )}
       </div>
+
+      {history.length > 0 && (
+        <div style={{ marginBottom: "0.75rem" }}>
+          <span style={sectionLabel}>Previously scraped</span>
+          <div style={{ marginTop: "0.35rem", display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+            {history.map(s => (
+              <div key={s.url} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "12px" }}>
+                <button
+                  onClick={() => setUrl(s.url)}
+                  title={s.url}
+                  style={{ flex: 1, minWidth: 0, textAlign: "left", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", background: "none", border: "none", padding: 0, cursor: "pointer", color: "var(--accent)", fontFamily: "var(--font-body)", fontSize: "12px" }}
+                >
+                  {s.url}
+                </button>
+                <span style={{ color: "var(--text-muted)", whiteSpace: "nowrap", fontSize: "11px", flexShrink: 0 }}>
+                  {new Date(s.scraped_at + "Z").toLocaleDateString("en-GB")} · {s.image_count} imgs
+                </span>
+                <a href={s.url} target="_blank" rel="noreferrer" style={{ color: "var(--text-muted)", textDecoration: "none", flexShrink: 0 }}>↗</a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {scrapeError && <p style={errorStyle}>{scrapeError}</p>}
 

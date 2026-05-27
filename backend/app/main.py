@@ -13,10 +13,13 @@ from app.auth import (
     verify_password, create_session_token, require_admin,
     SESSION_COOKIE, SESSION_MAX_AGE, log_login,
 )
+from app.database import run_migrations
 from app.routers.admin import artists, books, tags, pages, footer, scrape, image_meta
 from app.routers import public
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+
+run_migrations()
 
 limiter = Limiter(key_func=get_remote_address)
 

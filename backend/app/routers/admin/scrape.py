@@ -122,6 +122,7 @@ def _extract_html_image_urls(html_text: str) -> list[str]:
 class ScrapeRequest(BaseModel):
     url: str
     force: bool = False
+    book_id: int | None = None
 
 
 def _base_url(u: str) -> str:
@@ -157,6 +158,24 @@ def _parse_jina_markdown(content: str) -> dict:
     ]
 
     return {"text_blocks": text_blocks, "image_urls": image_urls}
+
+
+@router.get("")
+def list_book_scrapes(book_id: int, db: Session = Depends(get_db)):
+    scrapes = (
+        db.query(RawScrape)
+        .filter(RawScrape.book_id == book_id)
+        .order_by(RawScrape.scraped_at.desc())
+        .all()
+    )
+    return [
+        {
+            "url": s.url,
+            "scraped_at": s.scraped_at.isoformat(),
+            "image_count": len(json.loads(s.content).get("image_urls", [])),
+        }
+        for s in scrapes
+    ]
 
 
 @router.post("")
@@ -226,8 +245,10 @@ async def scrape(body: ScrapeRequest, db: Session = Depends(get_db)):
     if existing:
         existing.content = content_json
         existing.scraped_at = now
+        if body.book_id is not None:
+            existing.book_id = body.book_id
     else:
-        db.add(RawScrape(url=url, scraped_at=now, content=content_json))
+        db.add(RawScrape(url=url, scraped_at=now, content=content_json, book_id=body.book_id))
     db.commit()
 
     return {
