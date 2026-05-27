@@ -1,0 +1,37 @@
+import { useState, useEffect } from "react";
+
+export default function PublicFooter() {
+  const [items, setItems] = useState([]);
+
+  useEffect(() => {
+    fetch("/api/footer", { credentials: "include" })
+      .then(r => r.json())
+      .then(setItems)
+      .catch(() => {});
+  }, []);
+
+  if (!items.length) return null;
+
+  return (
+    <footer style={{
+      padding: "1.5rem 3rem",
+      borderTop: "1px solid var(--border)",
+      display: "flex",
+      gap: "1.5rem",
+      flexWrap: "wrap",
+    }}>
+      {items.map((item, i) =>
+        item.type === "link" ? (
+          <a key={i} href={item.url} target="_blank" rel="noreferrer" style={footerLink}>
+            {item.label}
+          </a>
+        ) : (
+          <span key={i} style={footerText}>{item.label}</span>
+        )
+      )}
+    </footer>
+  );
+}
+
+const footerLink = { fontSize: "13px", color: "var(--text-muted)", textDecoration: "none" };
+const footerText = { fontSize: "13px", color: "var(--text-muted)" };

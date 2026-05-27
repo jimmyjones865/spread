@@ -8,19 +8,19 @@ import AdminArtistForm from "./admin/AdminArtistForm";
 import AdminTags from "./admin/AdminTags";
 import AdminPages from "./admin/AdminPages";
 import AdminFooter from "./admin/AdminFooter";
-
-function Placeholder({ name }) {
-  return <div style={{ padding: "4rem 2rem", color: "var(--text-muted)", fontSize: "18px" }}>{name}</div>;
-}
+import Gallery from "./pages/Gallery";
+import BookDetail from "./pages/BookDetail";
+import ArtistPage from "./pages/ArtistPage";
+import StaticPage from "./pages/StaticPage";
 
 export default function App() {
   return (
     <AuthProvider>
       <Routes>
-        {/* Public — Phase 4 */}
-        <Route path="/" element={<Placeholder name="Gallery" />} />
-        <Route path="/books/:slug" element={<Placeholder name="Book" />} />
-        <Route path="/artists/:slug" element={<Placeholder name="Artist" />} />
+        {/* Public */}
+        <Route path="/" element={<Gallery />} />
+        <Route path="/books/:slug" element={<BookDetail />} />
+        <Route path="/artists/:slug" element={<ArtistPage />} />
 
         {/* Admin */}
         <Route path="/admin" element={<AdminLayout />}>
@@ -35,8 +35,8 @@ export default function App() {
           <Route path="footer" element={<AdminFooter />} />
         </Route>
 
-        {/* Static pages — Phase 4 */}
-        <Route path="/:slug" element={<Placeholder name="Page" />} />
+        {/* Static pages — catch-all after all specific routes */}
+        <Route path="/:slug" element={<StaticPage />} />
       </Routes>
     </AuthProvider>
   );
