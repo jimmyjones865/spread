@@ -1,6 +1,8 @@
+import asyncio
 import json
 import re
 from datetime import datetime
+from html.parser import HTMLParser as _HTMLParser
 from urllib.parse import urlparse
 
 import httpx
@@ -11,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.auth import require_admin
 from app.database import get_db
 from app.models import RawScrape
+from app.utils.ssrf import is_safe_url
 
 router = APIRouter(prefix="/api/admin/scrape", dependencies=[Depends(require_admin)])
 
@@ -22,6 +25,54 @@ IMG_EXT_RE = re.compile(
     r'(https?://[^\s)>"\]]+\.(?:jpg|jpeg|png|webp|gif))(?:[?#][^\s)>"\]]*)?',
     re.IGNORECASE,
 )
+
+# For raw HTML parsing: image URLs in <a href> anchors and data-* lazy-load attrs
+_HTML_IMG_RE = re.compile(
+    r'^https?://[^\s"\'<>]+\.(?:jpg|jpeg|png|webp|gif)(?:[?#][^\s"\'<>]*)?$',
+    re.IGNORECASE,
+)
+_DATA_ATTRS = {
+    "data-src", "data-zoom", "data-large", "data-original",
+    "data-full", "data-lazy-src", "data-hi-res", "data-image",
+}
+
+
+class _ImageLinkParser(_HTMLParser):
+    """Finds full-res image URLs that Jina misses:
+    - <a href="full.jpg"><img src="thumb.jpg"> patterns (lightbox anchors)
+    - data-src / data-zoom / data-original etc. (lazy-load attributes)
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.urls: list[str] = []
+        self._a_href: str | None = None
+
+    def handle_starttag(self, tag, attrs):
+        attr_dict = dict(attrs)
+        if tag == "a":
+            href = attr_dict.get("href") or ""
+            self._a_href = href if _HTML_IMG_RE.match(href) else None
+        elif tag in ("img", "source"):
+            if self._a_href:
+                self.urls.append(self._a_href)
+            for attr in _DATA_ATTRS:
+                val = attr_dict.get(attr) or ""
+                if val and _HTML_IMG_RE.match(val):
+                    self.urls.append(val)
+
+    def handle_endtag(self, tag):
+        if tag == "a":
+            self._a_href = None
+
+
+def _extract_html_image_urls(html_text: str) -> list[str]:
+    parser = _ImageLinkParser()
+    try:
+        parser.feed(html_text)
+    except Exception:
+        pass
+    return parser.urls
 
 
 class ScrapeRequest(BaseModel):
@@ -84,20 +135,43 @@ async def scrape(body: ScrapeRequest, db: Session = Depends(get_db)):
                 "from_cache": True,
             }
 
+    safe, reason = is_safe_url(url)
+    if not safe:
+        raise HTTPException(400, detail=f"URL not allowed: {reason}")
+
     jina_url = JINA_BASE + url
     try:
         async with httpx.AsyncClient(timeout=SCRAPE_TIMEOUT, follow_redirects=True) as client:
-            resp = await client.get(jina_url, headers={"Accept": "text/markdown"})
-            resp.raise_for_status()
-            markdown = resp.text
-    except httpx.TimeoutException:
-        raise HTTPException(504, detail="Scrape timed out")
-    except httpx.HTTPStatusError as e:
-        raise HTTPException(502, detail=f"Scrape failed: HTTP {e.response.status_code}")
+            jina_resp, html_resp = await asyncio.gather(
+                client.get(jina_url, headers={"Accept": "text/markdown"}),
+                client.get(url, headers={"User-Agent": "Mozilla/5.0 (compatible)", "Accept": "text/html,*/*"}),
+                return_exceptions=True,
+            )
     except Exception as e:
         raise HTTPException(502, detail=f"Scrape failed: {e}")
 
+    if isinstance(jina_resp, Exception):
+        if isinstance(jina_resp, httpx.TimeoutException):
+            raise HTTPException(504, detail="Scrape timed out")
+        raise HTTPException(502, detail=f"Scrape failed: {jina_resp}")
+    try:
+        jina_resp.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(502, detail=f"Scrape failed: HTTP {e.response.status_code}")
+
+    markdown = jina_resp.text
     parsed_data = _parse_jina_markdown(markdown)
+
+    # Augment with URLs from raw HTML that Jina's markdown conversion drops
+    if not isinstance(html_resp, Exception) and html_resp.is_success:
+        html_urls = _extract_html_image_urls(html_resp.text)
+        seen_bases = {_base_url(u) for u in parsed_data["image_urls"]}
+        for u in html_urls:
+            base = _base_url(u)
+            if base not in seen_bases:
+                parsed_data["image_urls"].append(u)
+                seen_bases.add(base)
+
     content_json = json.dumps(parsed_data)
     now = datetime.utcnow()
 

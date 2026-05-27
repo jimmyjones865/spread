@@ -18,7 +18,15 @@ export default function Gallery() {
   const [books, setBooks] = useState([]);
   const [artists, setArtists] = useState([]);
   const [allTags, setAllTags] = useState([]);
+  const [availableYears, setAvailableYears] = useState([]);
+  const [siteTitle, setSiteTitle] = useState("Spread");
   const [loading, setLoading] = useState(true);
+  const [panelOpen, setPanelOpen] = useState(false);
+
+  const [cardWidth, setCardWidth] = useState(() => {
+    const stored = localStorage.getItem("spread_card_width");
+    return stored ? parseInt(stored) : 190;
+  });
 
   const [q, setQ] = useState("");
   const [artistId, setArtistId] = useState("");
@@ -37,6 +45,14 @@ export default function Gallery() {
   useEffect(() => {
     fetch("/api/artists", { credentials: "include" }).then(r => r.json()).then(setArtists).catch(() => {});
     fetch("/api/tags", { credentials: "include" }).then(r => r.json()).then(setAllTags).catch(() => {});
+    fetch("/api/config").then(r => r.json()).then(d => setSiteTitle(d.title)).catch(() => {});
+    fetch("/api/books?sort=year&order=asc", { credentials: "include" })
+      .then(r => r.json())
+      .then(data => {
+        const years = [...new Set(data.map(b => b.year).filter(Boolean))].sort((a, b) => a - b);
+        setAvailableYears(years);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -68,109 +84,56 @@ export default function Gallery() {
     });
   }
 
-  const hasFilters = debouncedQ || artistId || yearFrom || yearTo || language || activeTags.size > 0 || status || signed || numbered;
+  function clearFilters() {
+    setQ(""); setArtistId(""); setYearFrom(""); setYearTo(""); setLanguage("");
+    setActiveTags(new Set()); setStatus(""); setSigned(false); setNumbered(false);
+  }
+
+  function updateCardWidth(w) {
+    setCardWidth(w);
+    localStorage.setItem("spread_card_width", w);
+  }
+
+  const activeFilterCount =
+    [q, artistId, yearFrom, yearTo, language, status].filter(Boolean).length +
+    (signed ? 1 : 0) + (numbered ? 1 : 0) + activeTags.size;
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      <div style={{ padding: "2.5rem 3rem 0" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
-          <h1 style={{ margin: 0, fontSize: "26px", fontWeight: 700, color: "var(--text-bright)", letterSpacing: "0.02em" }}>
-            Spread
-          </h1>
+      {/* Header */}
+      <div style={{ padding: "2rem 2.5rem 1.5rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <h1 style={{ margin: 0, fontSize: "24px", fontWeight: 700, color: "var(--text-bright)", letterSpacing: "0.02em" }}>
+          {siteTitle}
+        </h1>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+          <input
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="Search…"
+            style={searchInput}
+          />
           <ThemeToggle />
+          <button
+            onClick={() => setPanelOpen(true)}
+            style={{ ...filterBtn, ...(activeFilterCount > 0 ? { color: "var(--accent)", borderColor: "var(--accent)" } : {}) }}
+          >
+            Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+          </button>
         </div>
-
-        <input
-          value={q}
-          onChange={e => setQ(e.target.value)}
-          placeholder="Search books, artists, publishers…"
-          style={searchInput}
-        />
-
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.6rem", margin: "0.75rem 0 0.6rem", alignItems: "center" }}>
-          <select value={artistId} onChange={e => setArtistId(e.target.value)} style={filterSelect}>
-            <option value="">All artists</option>
-            {artists.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-          </select>
-
-          <select value={status} onChange={e => setStatus(e.target.value)} style={filterSelect}>
-            <option value="">All statuses</option>
-            <option value="owned">Owned</option>
-            <option value="on_order">On order</option>
-            <option value="wishlist">Wishlist</option>
-          </select>
-
-          <input value={language} onChange={e => setLanguage(e.target.value)} placeholder="Language" style={{ ...filterSelect, width: "90px" }} />
-
-          <span style={{ fontSize: "13px", color: "var(--text-muted)" }}>Year</span>
-          <input value={yearFrom} onChange={e => setYearFrom(e.target.value)} type="number" placeholder="from" style={{ ...filterSelect, width: "76px" }} />
-          <span style={{ fontSize: "13px", color: "var(--text-muted)" }}>–</span>
-          <input value={yearTo} onChange={e => setYearTo(e.target.value)} type="number" placeholder="to" style={{ ...filterSelect, width: "76px" }} />
-
-          <label style={checkLabel}>
-            <input type="checkbox" checked={signed} onChange={e => setSigned(e.target.checked)} />
-            Signed
-          </label>
-          <label style={checkLabel}>
-            <input type="checkbox" checked={numbered} onChange={e => setNumbered(e.target.checked)} />
-            Numbered
-          </label>
-
-          <div style={{ marginLeft: "auto", display: "flex", gap: "0.4rem", alignItems: "center" }}>
-            <select value={sort} onChange={e => setSort(e.target.value)} style={filterSelect}>
-              <option value="artist">Artist</option>
-              <option value="title">Title</option>
-              <option value="year">Year</option>
-              <option value="publisher">Publisher</option>
-            </select>
-            <button onClick={() => setOrder(o => o === "asc" ? "desc" : "asc")} style={orderBtn} title={order === "asc" ? "Ascending" : "Descending"}>
-              {order === "asc" ? "↑" : "↓"}
-            </button>
-          </div>
-
-          {hasFilters && (
-            <button onClick={() => {
-              setQ(""); setArtistId(""); setYearFrom(""); setYearTo(""); setLanguage("");
-              setActiveTags(new Set()); setStatus(""); setSigned(false); setNumbered(false);
-            }} style={clearBtn}>
-              Clear
-            </button>
-          )}
-        </div>
-
-        {allTags.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: "1.5rem" }}>
-            {allTags.map(t => (
-              <button
-                key={t.id}
-                onClick={() => toggleTag(t.name)}
-                style={{
-                  padding: "3px 10px",
-                  borderRadius: "12px",
-                  border: "1px solid",
-                  cursor: "pointer",
-                  fontFamily: "var(--font-body)",
-                  fontSize: "12px",
-                  transition: "all 0.1s",
-                  background: activeTags.has(t.name) ? "var(--accent-dim)" : "var(--bg-elevated)",
-                  color: activeTags.has(t.name) ? "var(--text-bright)" : "var(--text-muted)",
-                  borderColor: activeTags.has(t.name) ? "var(--accent)" : "var(--border)",
-                }}
-              >
-                {t.name}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
-      <div style={{ flex: 1, padding: "0 3rem 3rem" }}>
+      {/* Book grid */}
+      <div style={{ flex: 1, padding: "0 2.5rem 3rem" }}>
         {loading ? (
           <p style={{ color: "var(--text-muted)", fontSize: "14px" }}>Loading…</p>
         ) : books.length === 0 ? (
           <p style={{ color: "var(--text-muted)", fontSize: "14px" }}>No books found.</p>
         ) : (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "1.75rem" }}>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: `repeat(auto-fill, minmax(${cardWidth}px, 1fr))`,
+            gap: "1.5rem",
+          }}>
             {books.map(book => (
               <BookCard key={book.slug} book={book} onClick={() => navigate(`/books/${book.slug}`)} />
             ))}
@@ -179,23 +142,158 @@ export default function Gallery() {
       </div>
 
       <PublicFooter />
+
+      {/* Filter overlay */}
+      {panelOpen && (
+        <>
+          <div
+            onClick={() => setPanelOpen(false)}
+            style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.35)" }}
+          />
+          <div style={{
+            position: "fixed", top: 0, right: 0, width: "300px", height: "100vh",
+            zIndex: 101, background: "var(--bg)", borderLeft: "1px solid var(--border)",
+            overflowY: "auto", padding: "1.5rem", boxSizing: "border-box",
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.75rem" }}>
+              <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-bright)" }}>Filters</span>
+              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                {activeFilterCount > 0 && (
+                  <button onClick={clearFilters} style={clearBtn}>Clear all</button>
+                )}
+                <button onClick={() => setPanelOpen(false)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "20px", lineHeight: 1, padding: "0 2px" }}>×</button>
+              </div>
+            </div>
+
+            <FilterSection label="Artist">
+              <select value={artistId} onChange={e => setArtistId(e.target.value)} style={panelSelect}>
+                <option value="">All artists</option>
+                {artists.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+            </FilterSection>
+
+            <FilterSection label="Year">
+              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                <select value={yearFrom} onChange={e => setYearFrom(e.target.value)} style={{ ...panelSelect, flex: 1 }}>
+                  <option value="">From</option>
+                  {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+                <span style={{ color: "var(--text-muted)", fontSize: "13px" }}>–</span>
+                <select value={yearTo} onChange={e => setYearTo(e.target.value)} style={{ ...panelSelect, flex: 1 }}>
+                  <option value="">To</option>
+                  {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
+            </FilterSection>
+
+            <FilterSection label="Status">
+              <select value={status} onChange={e => setStatus(e.target.value)} style={panelSelect}>
+                <option value="">All</option>
+                <option value="owned">Owned</option>
+                <option value="on_order">On order</option>
+                <option value="wishlist">Wishlist</option>
+              </select>
+            </FilterSection>
+
+            <FilterSection label="Language">
+              <input value={language} onChange={e => setLanguage(e.target.value)} placeholder="e.g. English" style={panelInput} />
+            </FilterSection>
+
+            {allTags.length > 0 && (
+              <FilterSection label="Tags">
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
+                  {allTags.map(t => (
+                    <button
+                      key={t.id}
+                      onClick={() => toggleTag(t.name)}
+                      style={{
+                        padding: "3px 8px", borderRadius: "10px", border: "1px solid",
+                        cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "11px",
+                        background: activeTags.has(t.name) ? "var(--accent-dim)" : "var(--bg-elevated)",
+                        color: activeTags.has(t.name) ? "var(--text-bright)" : "var(--text-muted)",
+                        borderColor: activeTags.has(t.name) ? "var(--accent)" : "var(--border)",
+                      }}
+                    >
+                      {t.name}
+                    </button>
+                  ))}
+                </div>
+              </FilterSection>
+            )}
+
+            <FilterSection label="Options">
+              <div style={{ display: "flex", gap: "1rem" }}>
+                <label style={checkLabel}>
+                  <input type="checkbox" checked={signed} onChange={e => setSigned(e.target.checked)} />
+                  Signed
+                </label>
+                <label style={checkLabel}>
+                  <input type="checkbox" checked={numbered} onChange={e => setNumbered(e.target.checked)} />
+                  Numbered
+                </label>
+              </div>
+            </FilterSection>
+
+            <FilterSection label="Sort by">
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <select value={sort} onChange={e => setSort(e.target.value)} style={{ ...panelSelect, flex: 1 }}>
+                  <option value="artist">Artist</option>
+                  <option value="title">Title</option>
+                  <option value="year">Year</option>
+                  <option value="publisher">Publisher</option>
+                </select>
+                <button onClick={() => setOrder(o => o === "asc" ? "desc" : "asc")} style={orderBtn}>
+                  {order === "asc" ? "↑" : "↓"}
+                </button>
+              </div>
+            </FilterSection>
+
+            <FilterSection label="Card size">
+              <input
+                type="range" min={120} max={280} step={10}
+                value={cardWidth}
+                onChange={e => updateCardWidth(parseInt(e.target.value))}
+                style={{ width: "100%", cursor: "pointer" }}
+              />
+              <div style={{ fontSize: "11px", color: "var(--text-muted)", textAlign: "right", marginTop: "2px" }}>
+                {cardWidth}px
+              </div>
+            </FilterSection>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function FilterSection({ label, children }) {
+  return (
+    <div style={{ marginBottom: "1.25rem" }}>
+      <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", fontWeight: 500, marginBottom: "0.5rem" }}>
+        {label}
+      </div>
+      {children}
     </div>
   );
 }
 
 function BookCard({ book, onClick }) {
   return (
-    <div onClick={onClick} style={{ cursor: "pointer", width: "140px", flexShrink: 0 }}>
-      <div style={{ width: "140px", height: "190px", background: "var(--bg-elevated)", borderRadius: "3px", overflow: "hidden", marginBottom: "0.5rem", border: "1px solid var(--border)" }}>
+    <div onClick={onClick} style={{ cursor: "pointer" }}>
+      <div style={{
+        position: "relative", width: "100%", paddingBottom: "135%",
+        background: "var(--bg-elevated)", borderRadius: "3px", overflow: "hidden",
+        marginBottom: "0.5rem", border: "1px solid var(--border)",
+      }}>
         {book.cover_url ? (
           <img
             src={book.cover_url}
             alt=""
-            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }}
             loading="lazy"
           />
         ) : (
-          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <span style={{ fontSize: "20px", color: "var(--text-muted)", fontWeight: 700, letterSpacing: "0.05em" }}>
               {book.title.slice(0, 2).toUpperCase()}
             </span>
@@ -212,8 +310,28 @@ function BookCard({ book, onClick }) {
   );
 }
 
-const searchInput = { width: "100%", padding: "0.6rem 0.75rem", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "6px", color: "var(--text)", fontFamily: "var(--font-body)", fontSize: "15px", boxSizing: "border-box" };
-const filterSelect = { padding: "0.35rem 0.5rem", background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "4px", color: "var(--text)", fontFamily: "var(--font-body)", fontSize: "13px", cursor: "pointer" };
+const searchInput = {
+  padding: "0.45rem 0.65rem", background: "var(--bg-elevated)",
+  border: "1px solid var(--border)", borderRadius: "6px",
+  color: "var(--text)", fontFamily: "var(--font-body)", fontSize: "14px", width: "200px",
+};
+const filterBtn = {
+  padding: "0.45rem 0.85rem", background: "var(--bg-elevated)",
+  border: "1px solid var(--border)", borderRadius: "6px",
+  color: "var(--text-muted)", fontFamily: "var(--font-body)", fontSize: "13px",
+  cursor: "pointer", whiteSpace: "nowrap",
+};
+const panelSelect = {
+  width: "100%", padding: "0.4rem 0.5rem", background: "var(--bg-elevated)",
+  border: "1px solid var(--border)", borderRadius: "4px",
+  color: "var(--text)", fontFamily: "var(--font-body)", fontSize: "13px", cursor: "pointer",
+  boxSizing: "border-box",
+};
+const panelInput = {
+  width: "100%", padding: "0.4rem 0.5rem", background: "var(--bg-elevated)",
+  border: "1px solid var(--border)", borderRadius: "4px",
+  color: "var(--text)", fontFamily: "var(--font-body)", fontSize: "13px", boxSizing: "border-box",
+};
 const checkLabel = { display: "inline-flex", alignItems: "center", gap: "0.35rem", fontSize: "13px", color: "var(--text-muted)", cursor: "pointer" };
-const orderBtn = { background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "4px", padding: "0.35rem 0.6rem", cursor: "pointer", color: "var(--text-muted)", fontFamily: "var(--font-body)", fontSize: "13px" };
-const clearBtn = { background: "none", border: "none", padding: "0.35rem 0.5rem", cursor: "pointer", color: "var(--text-muted)", fontFamily: "var(--font-body)", fontSize: "12px", textDecoration: "underline" };
+const orderBtn = { background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "4px", padding: "0.4rem 0.6rem", cursor: "pointer", color: "var(--text-muted)", fontFamily: "var(--font-body)", fontSize: "13px" };
+const clearBtn = { background: "none", border: "none", padding: "0 4px", cursor: "pointer", color: "var(--text-muted)", fontFamily: "var(--font-body)", fontSize: "12px", textDecoration: "underline" };

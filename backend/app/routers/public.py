@@ -1,3 +1,5 @@
+import os
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, contains_eager, selectinload, joinedload
@@ -7,6 +9,8 @@ from app.auth import SESSION_COOKIE, validate_session_token
 from app.models import Book, Artist, Tag, BookImage, Page, FooterItem, ImageRole
 
 router = APIRouter()
+
+SITE_TITLE = os.getenv("SITE_TITLE", "Spread")
 
 
 def _is_admin(request: Request) -> bool:
@@ -224,3 +228,8 @@ def get_page(slug: str, db: Session = Depends(get_db)):
 def get_footer(db: Session = Depends(get_db)):
     items = db.query(FooterItem).order_by(FooterItem.sort_order).all()
     return [{"type": i.type, "label": i.label, "url": i.url} for i in items]
+
+
+@router.get("/api/config")
+def get_config():
+    return {"title": SITE_TITLE}

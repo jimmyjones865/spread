@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import PublicFooter from "../components/PublicFooter";
-import ThemeToggle from "../components/ThemeToggle";
 
 function useIsMobile() {
   const [mobile, setMobile] = useState(() => window.innerWidth < 768);
@@ -30,35 +29,28 @@ export default function BookDetail() {
       .catch(() => setNotFound(true));
   }, [slug]);
 
-  // Scroll sync: left col "falls" into position as right col nears bottom
-  useEffect(() => {
-    const right = rightRef.current;
-    const leftInner = leftInnerRef.current;
-    if (!right || !leftInner || !book || isMobile) return;
-
-    function sync() {
-      const rightMax = right.scrollHeight - right.clientHeight;
-      const leftOverflow = leftInner.offsetHeight - right.clientHeight;
-      if (rightMax <= 0 || leftOverflow <= 0) {
-        leftInner.style.transform = "translateY(0)";
-        return;
-      }
-      const threshold = rightMax - leftOverflow;
-      const translate = right.scrollTop <= threshold
-        ? 0
-        : Math.min(right.scrollTop - threshold, leftOverflow);
-      leftInner.style.transform = `translateY(-${translate}px)`;
-    }
-
-    right.addEventListener("scroll", sync, { passive: true });
-    const ro = new ResizeObserver(sync);
-    ro.observe(leftInner);
-    ro.observe(right);
-    return () => {
-      right.removeEventListener("scroll", sync);
-      ro.disconnect();
-    };
-  }, [book, isMobile]);
+  // Scroll sync (Superlabo-style: both cols bottom out together) — kept for reference.
+  // Currently disabled: both columns scroll independently instead.
+  // To re-enable: restore this effect and change left col outer div back to overflow: "hidden".
+  //
+  // useEffect(() => {
+  //   const right = rightRef.current;
+  //   const leftInner = leftInnerRef.current;
+  //   if (!right || !leftInner || !book || isMobile) return;
+  //   function sync() {
+  //     const rightMax = right.scrollHeight - right.clientHeight;
+  //     const leftOverflow = leftInner.offsetHeight - right.clientHeight;
+  //     if (rightMax <= 0 || leftOverflow <= 0) { leftInner.style.transform = "translateY(0)"; return; }
+  //     const threshold = rightMax - leftOverflow;
+  //     const translate = right.scrollTop <= threshold ? 0 : Math.min(right.scrollTop - threshold, leftOverflow);
+  //     leftInner.style.transform = `translateY(-${translate}px)`;
+  //   }
+  //   right.addEventListener("scroll", sync, { passive: true });
+  //   const ro = new ResizeObserver(sync);
+  //   ro.observe(leftInner);
+  //   ro.observe(right);
+  //   return () => { right.removeEventListener("scroll", sync); ro.disconnect(); };
+  // }, [book, isMobile]);
 
   // Keyboard navigation for lightbox
   const closeLightbox = useCallback(() => setLightboxIdx(null), []);
@@ -112,10 +104,9 @@ export default function BookDetail() {
       {isMobile ? (
         <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
           <div style={{ padding: "1.5rem 1.5rem 2rem" }}>
-            <div style={backLinkRow}>
-            <Link to="/" style={backLink}>← Spread</Link>
-            <ThemeToggle />
-          </div>
+            <div style={{ marginBottom: "0" }}>
+              <Link to="/" style={backLink}>← Spread</Link>
+            </div>
             {metadata}
           </div>
           <div>{imageList}</div>
@@ -124,12 +115,11 @@ export default function BookDetail() {
       ) : (
         <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
           {/* Left — metadata */}
-          <div style={{ width: "28%", minWidth: "240px", maxWidth: "360px", height: "100vh", overflow: "hidden", borderRight: "1px solid var(--border)", flexShrink: 0 }}>
+          <div style={{ width: "28%", minWidth: "240px", maxWidth: "360px", height: "100vh", overflowY: "auto", borderRight: "1px solid var(--border)", flexShrink: 0 }}>
             <div ref={leftInnerRef} style={{ padding: "2rem 2rem 3rem" }}>
-              <div style={backLinkRow}>
-            <Link to="/" style={backLink}>← Spread</Link>
-            <ThemeToggle />
-          </div>
+              <div style={{ marginBottom: "0" }}>
+              <Link to="/" style={backLink}>← Spread</Link>
+            </div>
               {metadata}
             </div>
           </div>
@@ -339,7 +329,6 @@ function MetaRow({ label, value }) {
   );
 }
 
-const backLinkRow = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0" };
 const backLink = { fontSize: "13px", color: "var(--text-muted)", textDecoration: "none" };
 const sectionLabel = { fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", fontWeight: 500 };
 const topBtn = { background: "none", border: "none", color: "rgba(255,255,255,0.55)", fontSize: "15px", cursor: "pointer", padding: "2px 4px", fontFamily: "var(--font-body)" };
