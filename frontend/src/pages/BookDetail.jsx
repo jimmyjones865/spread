@@ -252,30 +252,39 @@ function arrowBtn(side) {
 }
 
 function BookMeta({ book }) {
+  const pubYear = [book.publisher, book.year].filter(Boolean).join(" ");
+
+  const editionParts = [];
+  if (book.edition) {
+    let ep = `${book.edition} Edition`;
+    if (book.print_run) ep += ` of ${book.print_run}`;
+    editionParts.push(ep);
+  } else if (book.print_run) {
+    editionParts.push(`Edition of ${book.print_run}`);
+  }
+  if (book.copy_number != null) editionParts.push(`copy ${book.copy_number}`);
+  if (book.signed) editionParts.push("signed");
+  if (book.numbered && book.copy_number == null) editionParts.push("numbered");
+  const editionLine = editionParts.join(", ");
+
   return (
     <div style={{ marginTop: "1.5rem" }}>
       <h1 style={{ margin: "0 0 0.25rem", fontSize: "20px", fontWeight: 700, color: "var(--text-bright)", lineHeight: 1.3 }}>
         {book.title}
       </h1>
-      <Link to={`/artists/${book.artist.slug}`} style={{ fontSize: "14px", color: "var(--accent)", textDecoration: "none", display: "block", marginBottom: "1.5rem" }}>
+      <Link to={`/artists/${book.artist.slug}`} style={{ fontSize: "14px", color: "var(--accent)", textDecoration: "none", display: "block", marginBottom: "1rem" }}>
         {book.artist.name}
       </Link>
 
-      <MetaRow label="Publisher" value={book.publisher} />
-      <MetaRow label="Year" value={book.year} />
-      <MetaRow label="Edition" value={book.edition} />
-      <MetaRow label="Language" value={book.language} />
-      <MetaRow label="ISBN" value={book.isbn} />
-      {book.signed && <MetaRow label="Signed" value="Yes" />}
-      {book.numbered && book.copy_number != null && (
-        <MetaRow label="Copy" value={`${book.copy_number}${book.print_run ? ` / ${book.print_run}` : ""}`} />
-      )}
-      {book.numbered && book.copy_number == null && <MetaRow label="Numbered" value="Yes" />}
+      <div style={{ marginBottom: "1.25rem", fontSize: "13px", color: "var(--text)", lineHeight: 1.7 }}>
+        {pubYear && <div>{pubYear}</div>}
+        {editionLine && <div>{editionLine}</div>}
+        {book.language && <div>{book.language}</div>}
+      </div>
 
       {book.tags.length > 0 && (
         <div style={{ marginBottom: "1.25rem" }}>
-          <div style={sectionLabel}>Tags</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", marginTop: "0.4rem" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem" }}>
             {book.tags.map(tag => (
               <span key={tag} style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "10px", background: "var(--bg-elevated)", color: "var(--text-muted)", border: "1px solid var(--border)" }}>
                 {tag}
@@ -303,6 +312,12 @@ function BookMeta({ book }) {
         </div>
       )}
 
+      {book.isbn && (
+        <div style={{ marginBottom: "1.25rem" }}>
+          <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>ISBN {book.isbn}</span>
+        </div>
+      )}
+
       {book.links.length > 0 && (
         <div>
           <div style={sectionLabel}>Links</div>
@@ -315,16 +330,6 @@ function BookMeta({ book }) {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function MetaRow({ label, value }) {
-  if (value == null || value === "") return null;
-  return (
-    <div style={{ marginBottom: "0.5rem" }}>
-      <span style={sectionLabel}>{label}</span>
-      <span style={{ fontSize: "13px", color: "var(--text)", marginLeft: "0.5rem" }}>{value}</span>
     </div>
   );
 }

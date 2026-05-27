@@ -49,7 +49,7 @@ export default function Gallery() {
     fetch("/api/books?sort=year&order=asc", { credentials: "include" })
       .then(r => r.json())
       .then(data => {
-        const years = [...new Set(data.map(b => b.year).filter(Boolean))].sort((a, b) => a - b);
+        const years = [...new Set(data.map(b => b.year).filter(Boolean))].sort((a, b) => b - a);
         setAvailableYears(years);
       })
       .catch(() => {});
@@ -115,9 +115,18 @@ export default function Gallery() {
           <ThemeToggle />
           <button
             onClick={() => setPanelOpen(true)}
+            title="Filters"
             style={{ ...filterBtn, ...(activeFilterCount > 0 ? { color: "var(--accent)", borderColor: "var(--accent)" } : {}) }}
           >
-            Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ display: "block" }}>
+              <line x1="1" y1="4" x2="15" y2="4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <circle cx="5" cy="4" r="1.75" stroke="currentColor" strokeWidth="1.5" style={{ fill: "var(--bg-elevated)" }}/>
+              <line x1="1" y1="8" x2="15" y2="8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <circle cx="10" cy="8" r="1.75" stroke="currentColor" strokeWidth="1.5" style={{ fill: "var(--bg-elevated)" }}/>
+              <line x1="1" y1="12" x2="15" y2="12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <circle cx="6" cy="12" r="1.75" stroke="currentColor" strokeWidth="1.5" style={{ fill: "var(--bg-elevated)" }}/>
+            </svg>
+            {activeFilterCount > 0 && <span style={{ position: "absolute", top: "-5px", right: "-5px", background: "var(--accent)", color: "var(--text-bright)", borderRadius: "50%", fontSize: "10px", width: "16px", height: "16px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600 }}>{activeFilterCount}</span>}
           </button>
         </div>
       </div>
@@ -186,15 +195,6 @@ export default function Gallery() {
               </div>
             </FilterSection>
 
-            <FilterSection label="Status">
-              <select value={status} onChange={e => setStatus(e.target.value)} style={panelSelect}>
-                <option value="">All</option>
-                <option value="owned">Owned</option>
-                <option value="on_order">On order</option>
-                <option value="wishlist">Wishlist</option>
-              </select>
-            </FilterSection>
-
             <FilterSection label="Language">
               <input value={language} onChange={e => setLanguage(e.target.value)} placeholder="e.g. English" style={panelInput} />
             </FilterSection>
@@ -246,6 +246,15 @@ export default function Gallery() {
                   {order === "asc" ? "↑" : "↓"}
                 </button>
               </div>
+            </FilterSection>
+
+            <FilterSection label="Status">
+              <select value={status} onChange={e => setStatus(e.target.value)} style={panelSelect}>
+                <option value="">All</option>
+                <option value="owned">Owned</option>
+                <option value="on_order">On order</option>
+                <option value="wishlist">Wishlist</option>
+              </select>
             </FilterSection>
 
             <FilterSection label="Card size">
@@ -316,10 +325,10 @@ const searchInput = {
   color: "var(--text)", fontFamily: "var(--font-body)", fontSize: "14px", width: "200px",
 };
 const filterBtn = {
-  padding: "0.45rem 0.85rem", background: "var(--bg-elevated)",
+  padding: "0.45rem 0.55rem", background: "var(--bg-elevated)",
   border: "1px solid var(--border)", borderRadius: "6px",
   color: "var(--text-muted)", fontFamily: "var(--font-body)", fontSize: "13px",
-  cursor: "pointer", whiteSpace: "nowrap",
+  cursor: "pointer", position: "relative", lineHeight: 0,
 };
 const panelSelect = {
   width: "100%", padding: "0.4rem 0.5rem", background: "var(--bg-elevated)",

@@ -5,9 +5,33 @@ import ImageManager from "../components/ImageManager";
 import TagSelect from "../components/TagSelect";
 import CurationPanel from "../components/CurationPanel";
 
+const LANGUAGES = [
+  "English", "Japanese", "German", "French", "Italian", "Spanish",
+  "Dutch", "Swedish", "Norwegian", "Danish", "Finnish", "Korean",
+  "Chinese", "Portuguese", "Polish", "Czech", "Russian", "Arabic",
+  "Turkish", "Greek", "Hungarian", "Romanian", "Ukrainian", "Hebrew",
+  "Persian", "Catalan",
+];
+
+const LANG_CODE_MAP = {
+  en: "English", ja: "Japanese", de: "German", fr: "French", it: "Italian",
+  es: "Spanish", nl: "Dutch", sv: "Swedish", no: "Norwegian", da: "Danish",
+  fi: "Finnish", ko: "Korean", zh: "Chinese", pt: "Portuguese", pl: "Polish",
+  cs: "Czech", ru: "Russian", ar: "Arabic", tr: "Turkish", el: "Greek",
+  hu: "Hungarian", ro: "Romanian", uk: "Ukrainian", he: "Hebrew", fa: "Persian",
+  ca: "Catalan",
+};
+
+function parseLanguages(str) {
+  if (!str) return [];
+  return str.split(/\s*[\/,]\s*/)
+    .map(s => LANG_CODE_MAP[s.trim().toLowerCase()] || s.trim())
+    .filter(Boolean);
+}
+
 const EMPTY = {
   title: "", artist_id: "", publisher: "", year: "", edition: "",
-  language: "", isbn: "", signed: false, numbered: false,
+  language: [], isbn: "", signed: false, numbered: false,
   print_run: "", copy_number: "", status: "owned", hidden: false,
   acquisition_year: "", price_paid: "", description: "", colophon: "", notes: "",
   tag_ids: [],
@@ -20,7 +44,7 @@ function toForm(book) {
     publisher: book.publisher ?? "",
     year: book.year != null ? String(book.year) : "",
     edition: book.edition ?? "",
-    language: book.language ?? "",
+    language: parseLanguages(book.language ?? ""),
     isbn: book.isbn ?? "",
     signed: book.signed ?? false,
     numbered: book.numbered ?? false,
@@ -44,7 +68,7 @@ function toPayload(form) {
     publisher: form.publisher || null,
     year: form.year ? parseInt(form.year) : null,
     edition: form.edition || null,
-    language: form.language || null,
+    language: form.language.join(" / ") || null,
     isbn: form.isbn || null,
     signed: form.signed,
     numbered: form.numbered,
@@ -163,7 +187,9 @@ export default function AdminBookForm() {
           <Row label="Publisher"><Input value={form.publisher} onChange={v => set("publisher", v)} /></Row>
           <Row label="Year"><Input value={form.year} onChange={v => set("year", v)} type="number" /></Row>
           <Row label="Edition"><Input value={form.edition} onChange={v => set("edition", v)} placeholder='e.g. "1st", "XL"' /></Row>
-          <Row label="Language"><Input value={form.language} onChange={v => set("language", v)} placeholder="en, ja, de…" /></Row>
+          <Row label="Language">
+            <LanguageSelect value={form.language} onChange={v => set("language", v)} />
+          </Row>
           <Row label="ISBN"><Input value={form.isbn} onChange={v => set("isbn", v)} /></Row>
         </Section>
 
@@ -310,6 +336,33 @@ function LinkManager({ bookId, links, onChanged }) {
         <input value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder="Label (optional)" style={{ ...inputStyle, flex: 1 }} />
         <button type="button" onClick={add} style={ghostBtn}>Add</button>
       </div>
+    </div>
+  );
+}
+
+function LanguageSelect({ value, onChange }) {
+  function toggle(lang) {
+    if (value.includes(lang)) onChange(value.filter(l => l !== lang));
+    else onChange([...value, lang]);
+  }
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem" }}>
+      {LANGUAGES.map(lang => (
+        <button
+          key={lang}
+          type="button"
+          onClick={() => toggle(lang)}
+          style={{
+            padding: "2px 8px", borderRadius: "10px", border: "1px solid",
+            cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "12px",
+            background: value.includes(lang) ? "var(--accent-dim)" : "var(--bg-highlight)",
+            color: value.includes(lang) ? "var(--text-bright)" : "var(--text-muted)",
+            borderColor: value.includes(lang) ? "var(--accent)" : "var(--border)",
+          }}
+        >
+          {lang}
+        </button>
+      ))}
     </div>
   );
 }
