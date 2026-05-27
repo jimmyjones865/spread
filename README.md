@@ -35,6 +35,12 @@ Single quotes are required — the `$` characters would be interpreted by the sh
 
 To change the password later: run the same command, paste the new hash, restart the container (`docker compose up -d --force-recreate`). Changing `SESSION_SECRET` invalidates all existing sessions immediately.
 
+Restrict `.env` permissions on the server — it contains the password hash and session secret:
+
+```bash
+chmod 600 .env
+```
+
 ### 3. Build and start
 
 ```bash

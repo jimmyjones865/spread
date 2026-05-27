@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 from app.models import BookStatus, ImageRole, FooterItemType
 
 
@@ -60,6 +60,13 @@ class BookLinkBase(BaseModel):
     url: str
     label: str | None = None
     sort_order: int = 0
+
+    @field_validator("url")
+    @classmethod
+    def url_must_be_http(cls, v: str) -> str:
+        if not v.startswith(("http://", "https://")):
+            raise ValueError("URL must start with http:// or https://")
+        return v
 
 
 class BookLinkCreate(BookLinkBase):

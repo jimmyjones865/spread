@@ -126,10 +126,16 @@ STATIC_DIR = Path("static")
 async def spa(full_path: str):
     # Serve real files (favicon, fonts, assets) when they exist; fall back to
     # index.html so React Router handles all client-side routes (e.g. /admin).
+    # Resolve + bounds-check prevents path traversal (e.g. /../app/main.py).
     if STATIC_DIR.exists():
-        file_path = STATIC_DIR / full_path
-        if file_path.is_file():
-            return FileResponse(str(file_path))
+        static_root = STATIC_DIR.resolve()
+        candidate = (STATIC_DIR / full_path).resolve()
+        try:
+            candidate.relative_to(static_root)
+            if candidate.is_file():
+                return FileResponse(str(candidate))
+        except ValueError:
+            pass
         index = STATIC_DIR / "index.html"
         if index.exists():
             return FileResponse(str(index))
