@@ -30,7 +30,7 @@ def is_safe_url(url: str) -> tuple[bool, str]:
         return False, "resolve_failed"
 
     addr = ipaddress.ip_address(resolved)
-    if any(addr in net for net in PRIVATE_NETS):
+    if addr.is_unspecified or addr.is_multicast or any(addr in net for net in PRIVATE_NETS):
         return False, "private"
 
     return True, resolved

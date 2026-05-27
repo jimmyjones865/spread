@@ -29,7 +29,7 @@ async def _head_one(client: httpx.AsyncClient, url: str) -> dict:
 
 
 @router.post("")
-async def image_meta(body: ImageMetaRequest, _: None = Depends(require_admin)):
+async def image_meta(body: ImageMetaRequest):
     urls = body.urls[:50]
     async with httpx.AsyncClient(timeout=HEAD_TIMEOUT) as client:
         results = await asyncio.gather(*[_head_one(client, u) for u in urls])

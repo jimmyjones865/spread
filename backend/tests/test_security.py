@@ -102,3 +102,16 @@ def test_ssrf_ftp_scheme():
     ok, reason = is_safe_url("ftp://example.com/file")
     assert not ok
     assert reason == "scheme"
+
+
+def test_ssrf_unspecified_ipv4():
+    # 0.0.0.0 is not in any private CIDR but connects to localhost on Linux
+    ok, reason = is_safe_url("http://0.0.0.0/internal")
+    assert not ok
+    assert reason == "private"
+
+
+def test_ssrf_unspecified_ipv6():
+    ok, reason = is_safe_url("http://[::]/internal")
+    assert not ok
+    assert reason == "private"
