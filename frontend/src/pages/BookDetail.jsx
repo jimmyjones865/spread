@@ -139,13 +139,32 @@ export default function BookDetail() {
 
 function Lightbox({ images, idx, onClose, onPrev, onNext }) {
   const [zoomed, setZoomed] = useState(false);
+  const containerRef = useRef(null);
+  const imgRef = useRef(null);
+  const clickRatioRef = useRef(null);
   const multi = images.length > 1;
 
   // Reset zoom when image changes
   useEffect(() => setZoomed(false), [idx]);
 
+  // After zooming in, scroll so the clicked spot stays centered
+  useEffect(() => {
+    if (!zoomed || !clickRatioRef.current || !containerRef.current || !imgRef.current) return;
+    const { rx, ry } = clickRatioRef.current;
+    clickRatioRef.current = null;
+    const container = containerRef.current;
+    const img = imgRef.current;
+    requestAnimationFrame(() => {
+      const naturalX = rx * img.naturalWidth;
+      const naturalY = ry * img.naturalHeight;
+      container.scrollLeft = Math.max(0, naturalX - container.clientWidth / 2);
+      container.scrollTop = Math.max(0, img.offsetTop + naturalY - container.clientHeight / 2);
+    });
+  }, [zoomed]);
+
   return (
     <div
+      ref={containerRef}
       onClick={onClose}
       style={{
         position: "fixed", inset: 0, zIndex: 200,
@@ -174,7 +193,7 @@ function Lightbox({ images, idx, onClose, onPrev, onNext }) {
           >
             {zoomed ? "Fit" : "1:1"}
           </button>
-          <button onClick={e => { e.stopPropagation(); onClose(); }} style={topBtn}>×</button>
+          <button onClick={e => { e.stopPropagation(); onClose(); }} style={{ ...topBtn, fontSize: "20px" }}>×</button>
         </div>
       </div>
 
@@ -185,9 +204,20 @@ function Lightbox({ images, idx, onClose, onPrev, onNext }) {
 
       {/* Image */}
       <img
+        ref={imgRef}
         src={images[idx].url}
         alt=""
-        onClick={e => { e.stopPropagation(); setZoomed(z => !z); }}
+        onClick={e => {
+          e.stopPropagation();
+          if (!zoomed) {
+            const rect = e.currentTarget.getBoundingClientRect();
+            clickRatioRef.current = {
+              rx: (e.clientX - rect.left) / rect.width,
+              ry: (e.clientY - rect.top) / rect.height,
+            };
+          }
+          setZoomed(z => !z);
+        }}
         style={{
           display: "block",
           userSelect: "none",
