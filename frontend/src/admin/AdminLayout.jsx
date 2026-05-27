@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import AdminLogin from "./AdminLogin";
 import ThemeToggle from "../components/ThemeToggle";
@@ -37,6 +37,9 @@ export default function AdminLayout() {
           </NavLink>
         ))}
         <div style={{ marginTop: "auto", padding: "1rem 1.25rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+          <Link to="/" style={{ fontSize: "12px", color: "var(--text-muted)", textDecoration: "none", opacity: 0.7 }}>
+            View site ↗
+          </Link>
           <ThemeToggle />
           <button
             onClick={async () => { await logout(); navigate("/admin"); }}

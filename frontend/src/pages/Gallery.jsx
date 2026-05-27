@@ -98,8 +98,10 @@ export default function Gallery() {
 
           <input value={language} onChange={e => setLanguage(e.target.value)} placeholder="Language" style={{ ...filterSelect, width: "90px" }} />
 
-          <input value={yearFrom} onChange={e => setYearFrom(e.target.value)} type="number" placeholder="From" style={{ ...filterSelect, width: "76px" }} />
-          <input value={yearTo} onChange={e => setYearTo(e.target.value)} type="number" placeholder="To" style={{ ...filterSelect, width: "76px" }} />
+          <span style={{ fontSize: "13px", color: "var(--text-muted)" }}>Year</span>
+          <input value={yearFrom} onChange={e => setYearFrom(e.target.value)} type="number" placeholder="from" style={{ ...filterSelect, width: "76px" }} />
+          <span style={{ fontSize: "13px", color: "var(--text-muted)" }}>–</span>
+          <input value={yearTo} onChange={e => setYearTo(e.target.value)} type="number" placeholder="to" style={{ ...filterSelect, width: "76px" }} />
 
           <label style={checkLabel}>
             <input type="checkbox" checked={signed} onChange={e => setSigned(e.target.checked)} />

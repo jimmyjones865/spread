@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import PublicFooter from "../components/PublicFooter";
 
@@ -16,6 +16,7 @@ export default function BookDetail() {
   const { slug } = useParams();
   const [book, setBook] = useState(null);
   const [notFound, setNotFound] = useState(false);
+  const [lightboxIdx, setLightboxIdx] = useState(null);
   const isMobile = useIsMobile();
 
   const rightRef = useRef(null);
@@ -58,6 +59,19 @@ export default function BookDetail() {
     };
   }, [book, isMobile]);
 
+  // Keyboard navigation for lightbox
+  const closeLightbox = useCallback(() => setLightboxIdx(null), []);
+  useEffect(() => {
+    if (lightboxIdx === null || !book) return;
+    function onKey(e) {
+      if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowRight") setLightboxIdx(i => (i + 1) % book.images.length);
+      if (e.key === "ArrowLeft") setLightboxIdx(i => (i - 1 + book.images.length) % book.images.length);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightboxIdx, book, closeLightbox]);
+
   if (notFound) {
     return (
       <div style={{ padding: "4rem 3rem", color: "var(--text-muted)" }}>
@@ -70,46 +84,131 @@ export default function BookDetail() {
   if (!book) return null;
 
   const metadata = <BookMeta book={book} />;
-  const imageList = book.images.map(img => (
-    <a key={img.id} href={img.url} target="_blank" rel="noreferrer">
-      <img
-        src={img.url}
-        alt=""
-        style={{ width: "100%", height: "auto", display: "block" }}
-        loading="lazy"
-      />
-    </a>
+  const imageList = book.images.map((img, idx) => (
+    <img
+      key={img.id}
+      src={img.url}
+      alt=""
+      onClick={() => setLightboxIdx(idx)}
+      style={{ width: "100%", height: "auto", display: "block", cursor: "zoom-in" }}
+      loading="lazy"
+    />
   ));
 
-  if (isMobile) {
-    return (
-      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: "1.5rem 1.5rem 2rem" }}>
-          <Link to="/" style={backLink}>← Spread</Link>
-          {metadata}
-        </div>
-        <div>{imageList}</div>
-        <PublicFooter />
-      </div>
-    );
-  }
-
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-      {/* Left — metadata */}
-      <div style={{ width: "28%", minWidth: "240px", maxWidth: "360px", height: "100vh", overflow: "hidden", borderRight: "1px solid var(--border)", flexShrink: 0 }}>
-        <div ref={leftInnerRef} style={{ padding: "2rem 2rem 3rem" }}>
-          <Link to="/" style={backLink}>← Spread</Link>
-          {metadata}
-        </div>
-      </div>
+    <>
+      {/* Lightbox */}
+      {lightboxIdx !== null && book.images.length > 0 && (
+        <Lightbox
+          images={book.images}
+          idx={lightboxIdx}
+          onClose={closeLightbox}
+          onPrev={() => setLightboxIdx(i => (i - 1 + book.images.length) % book.images.length)}
+          onNext={() => setLightboxIdx(i => (i + 1) % book.images.length)}
+        />
+      )}
 
-      {/* Right — images */}
-      <div ref={rightRef} style={{ flex: 1, overflowY: "auto", height: "100vh" }}>
-        {imageList}
-      </div>
+      {isMobile ? (
+        <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+          <div style={{ padding: "1.5rem 1.5rem 2rem" }}>
+            <Link to="/" style={backLink}>← Spread</Link>
+            {metadata}
+          </div>
+          <div>{imageList}</div>
+          <PublicFooter />
+        </div>
+      ) : (
+        <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+          {/* Left — metadata */}
+          <div style={{ width: "28%", minWidth: "240px", maxWidth: "360px", height: "100vh", overflow: "hidden", borderRight: "1px solid var(--border)", flexShrink: 0 }}>
+            <div ref={leftInnerRef} style={{ padding: "2rem 2rem 3rem" }}>
+              <Link to="/" style={backLink}>← Spread</Link>
+              {metadata}
+            </div>
+          </div>
+
+          {/* Right — images */}
+          <div ref={rightRef} style={{ flex: 1, overflowY: "auto", height: "100vh" }}>
+            {imageList}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function Lightbox({ images, idx, onClose, onPrev, onNext }) {
+  const multi = images.length > 1;
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, zIndex: 200,
+        background: "rgba(0,0,0,0.93)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}
+    >
+      {/* Counter */}
+      {multi && (
+        <div style={{ position: "absolute", top: "1.25rem", left: "50%", transform: "translateX(-50%)", fontSize: "13px", color: "rgba(255,255,255,0.5)", letterSpacing: "0.05em" }}>
+          {idx + 1} / {images.length}
+        </div>
+      )}
+
+      {/* Close */}
+      <button
+        onClick={onClose}
+        style={{ position: "absolute", top: "1rem", right: "1.25rem", background: "none", border: "none", color: "rgba(255,255,255,0.5)", fontSize: "24px", cursor: "pointer", lineHeight: 1 }}
+      >
+        ×
+      </button>
+
+      {/* Prev */}
+      {multi && (
+        <button
+          onClick={e => { e.stopPropagation(); onPrev(); }}
+          style={arrowBtn("left")}
+        >
+          ‹
+        </button>
+      )}
+
+      {/* Image */}
+      <img
+        src={images[idx].url}
+        alt=""
+        onClick={e => e.stopPropagation()}
+        style={{ maxHeight: "92vh", maxWidth: "90vw", objectFit: "contain", display: "block", userSelect: "none" }}
+      />
+
+      {/* Next */}
+      {multi && (
+        <button
+          onClick={e => { e.stopPropagation(); onNext(); }}
+          style={arrowBtn("right")}
+        >
+          ›
+        </button>
+      )}
     </div>
   );
+}
+
+function arrowBtn(side) {
+  return {
+    position: "absolute",
+    [side]: "1.25rem",
+    top: "50%",
+    transform: "translateY(-50%)",
+    background: "none",
+    border: "none",
+    color: "rgba(255,255,255,0.6)",
+    fontSize: "48px",
+    cursor: "pointer",
+    lineHeight: 1,
+    padding: "0 0.5rem",
+    userSelect: "none",
+  };
 }
 
 function BookMeta({ book }) {
