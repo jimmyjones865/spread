@@ -69,7 +69,12 @@ async def login(request: Request, response: Response, body: LoginRequest):
 
 @app.post("/api/auth/logout")
 async def logout(response: Response):
-    response.delete_cookie(SESSION_COOKIE)
+    response.delete_cookie(
+        SESSION_COOKIE,
+        httponly=True,
+        secure=COOKIE_SECURE,
+        samesite="strict",
+    )
     return {"ok": True}
 
 

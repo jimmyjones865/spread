@@ -87,7 +87,7 @@ def list_books(
     if year_to:
         query = query.filter(Book.year <= year_to)
     if language:
-        query = query.filter(Book.language == language)
+        query = query.filter(Book.language.ilike(f"%{language}%"))
     if status:
         query = query.filter(Book.status == status)
     if signed is not None:

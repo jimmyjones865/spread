@@ -191,6 +191,9 @@ async def scrape(body: ScrapeRequest, db: Session = Depends(get_db)):
     if not body.force:
         existing = db.query(RawScrape).filter(RawScrape.url == url).first()
         if existing:
+            if body.book_id is not None and existing.book_id != body.book_id:
+                existing.book_id = body.book_id
+                db.commit()
             data = json.loads(existing.content)
             return {
                 **data,
