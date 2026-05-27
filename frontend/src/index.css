@@ -6,7 +6,7 @@
 /* JuliaMono — self-host the woff2 if privacy is a concern */
 @font-face {
   font-family: "JuliaMono";
-  src: url("https://cdn.jsdelivr.net/gh/cormullion/juliamono/webfonts/JuliaMono-Regular.woff2") format("woff2");
+  src: url("/JuliaMono-Regular.woff2") format("woff2");
   font-weight: 400;
   font-display: swap;
 }

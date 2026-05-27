@@ -1,6 +1,10 @@
+import mimetypes
 import os
 import logging
 from pathlib import Path
+
+mimetypes.add_type("font/woff2", ".woff2")
+mimetypes.add_type("font/woff", ".woff")
 from fastapi import FastAPI, Request, Response, HTTPException, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -13,19 +17,40 @@ from app.auth import (
     verify_password, create_session_token, require_admin,
     SESSION_COOKIE, SESSION_MAX_AGE, log_login,
 )
-from app.database import run_migrations
 from app.routers.admin import artists, books, tags, pages, footer, scrape, image_meta
 from app.routers import public
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
-run_migrations()
-
 limiter = Limiter(key_func=get_remote_address)
+
+_CSP = (
+    "default-src 'self'; "
+    "script-src 'self'; "
+    "style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' https: data: blob:; "
+    "font-src 'self'; "
+    "connect-src 'self'; "
+    "frame-ancestors 'none'; "
+    "base-uri 'self'; "
+    "form-action 'self'; "
+    "object-src 'none';"
+)
 
 app = FastAPI(title="Spread", docs_url=None, redoc_url=None)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    response.headers["Content-Security-Policy"] = _CSP
+    return response
 
 COOKIE_SECURE = os.getenv("COOKIE_SECURE", "true").lower() != "false"
 
@@ -88,16 +113,9 @@ async def health():
     return {"ok": True}
 
 
-# SPA static assets and catch-all — must be last
+# SPA — must be last; html=True serves index.html for unknown paths (client-side routing)
+# and correctly serves root-level files like favicon.png and fonts.
 STATIC_DIR = Path("static")
 
-if (STATIC_DIR / "assets").exists():
-    app.mount("/assets", StaticFiles(directory=str(STATIC_DIR / "assets")), name="spa-assets")
-
-
-@app.get("/{full_path:path}", include_in_schema=False)
-async def serve_spa(full_path: str):
-    index = STATIC_DIR / "index.html"
-    if index.exists():
-        return FileResponse(index)
-    return {"error": "frontend not built"}
+if STATIC_DIR.exists() and (STATIC_DIR / "index.html").exists():
+    app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="spa")
