@@ -1,6 +1,7 @@
 .env
 CLAUDE.md
 PLAN.md
+ADVISOR_NOTES.md
 DECISIONS.md
 __pycache__/
 *.pyc
