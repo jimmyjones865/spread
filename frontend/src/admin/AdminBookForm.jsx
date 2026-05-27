@@ -119,6 +119,25 @@ export default function AdminBookForm() {
     }
   }
 
+  async function saveWithOverrides(overrides) {
+    const newForm = { ...form, ...overrides };
+    setForm(newForm);
+    setSaving(true);
+    setError(null);
+    try {
+      const payload = { ...toPayload(newForm), tag_ids: selectedTags.map(t => t.id) };
+      await api.updateBook(id, payload);
+      await loadBook();
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
+    } catch (e) {
+      setError(e.message);
+      throw e;
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const links = book?.links ?? [];
 
   return (
@@ -226,7 +245,12 @@ export default function AdminBookForm() {
             <CurationPanel
               bookId={parseInt(id)}
               onImagesAdded={loadBook}
-              onAssignText={(field, text) => set(field, text)}
+              onAddToBook={async (desc, colophon) => {
+                const overrides = {};
+                if (desc) overrides.description = desc;
+                if (colophon) overrides.colophon = colophon;
+                if (Object.keys(overrides).length > 0) await saveWithOverrides(overrides);
+              }}
             />
           </Section>
 
