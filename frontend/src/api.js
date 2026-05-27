@@ -78,4 +78,11 @@ export default {
   updateFooterItem:  (id, data) => put(`/api/admin/footer/${id}`, data),
   deleteFooterItem:  (id)       => del(`/api/admin/footer/${id}`),
   reorderFooter:     (ids)      => post("/api/admin/footer/reorder", { ids }),
+
+  // Scrape
+  scrape:            (url, force = false) => post("/api/admin/scrape", { url, force }),
+
+  // Download image from URL
+  downloadImage:     (bookId, url, role) =>
+    post(`/api/admin/books/${bookId}/images/from-url`, { url, role }),
 };

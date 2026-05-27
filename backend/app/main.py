@@ -13,7 +13,7 @@ from app.auth import (
     verify_password, create_session_token, require_admin,
     SESSION_COOKIE, SESSION_MAX_AGE, log_login,
 )
-from app.routers.admin import artists, books, tags, pages, footer
+from app.routers.admin import artists, books, tags, pages, footer, scrape
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
@@ -30,6 +30,7 @@ app.include_router(books.router)
 app.include_router(tags.router)
 app.include_router(pages.router)
 app.include_router(footer.router)
+app.include_router(scrape.router)
 IMAGE_DIR = Path(os.getenv("IMAGE_DIR", "/data/images"))
 IMAGE_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/images", StaticFiles(directory=str(IMAGE_DIR)), name="images")

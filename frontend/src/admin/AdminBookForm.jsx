@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import api from "../api";
 import ImageManager from "../components/ImageManager";
 import TagSelect from "../components/TagSelect";
+import CurationPanel from "../components/CurationPanel";
 
 const EMPTY = {
   title: "", artist_id: "", publisher: "", year: "", edition: "",
@@ -212,6 +213,14 @@ export default function AdminBookForm() {
               bookId={parseInt(id)}
               images={book.images}
               onChange={loadBook}
+            />
+          </Section>
+
+          <Section title="Scrape & Curate">
+            <CurationPanel
+              bookId={parseInt(id)}
+              onImagesAdded={loadBook}
+              onAssignText={(field, text) => set(field, text)}
             />
           </Section>
 
