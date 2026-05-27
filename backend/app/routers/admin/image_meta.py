@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from app.auth import require_admin
-from app.security import is_safe_url
+from app.utils.ssrf import is_safe_url
 
 router = APIRouter(prefix="/api/admin/image-meta", dependencies=[Depends(require_admin)])
 
