@@ -41,12 +41,13 @@ export default function AdminLayout() {
           <button
             onClick={async () => { await logout(); navigate("/admin"); }}
             style={{
-              background: "none", border: "1px solid var(--border)", color: "var(--text-muted)",
-              borderRadius: "4px", padding: "4px 10px", cursor: "pointer",
-              fontSize: "12px", fontFamily: "var(--font-body)",
+              background: "none", border: "none", color: "var(--text-muted)",
+              padding: "4px 0", cursor: "pointer", fontSize: "12px",
+              fontFamily: "var(--font-body)", textAlign: "left",
+              opacity: 0.7,
             }}
           >
-            Logout
+            Sign out
           </button>
         </div>
       </nav>
