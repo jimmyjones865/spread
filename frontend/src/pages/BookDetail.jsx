@@ -138,39 +138,49 @@ export default function BookDetail() {
 }
 
 function Lightbox({ images, idx, onClose, onPrev, onNext }) {
+  const [zoomed, setZoomed] = useState(false);
   const multi = images.length > 1;
+
+  // Reset zoom when image changes
+  useEffect(() => setZoomed(false), [idx]);
+
   return (
     <div
       onClick={onClose}
       style={{
         position: "fixed", inset: 0, zIndex: 200,
         background: "rgba(0,0,0,0.93)",
-        display: "flex", alignItems: "center", justifyContent: "center",
+        display: "flex",
+        alignItems: zoomed ? "flex-start" : "center",
+        justifyContent: zoomed ? "flex-start" : "center",
+        overflow: zoomed ? "auto" : "hidden",
       }}
     >
-      {/* Counter */}
-      {multi && (
-        <div style={{ position: "absolute", top: "1.25rem", left: "50%", transform: "translateX(-50%)", fontSize: "13px", color: "rgba(255,255,255,0.5)", letterSpacing: "0.05em" }}>
-          {idx + 1} / {images.length}
-        </div>
-      )}
-
-      {/* Close */}
-      <button
-        onClick={onClose}
-        style={{ position: "absolute", top: "1rem", right: "1.25rem", background: "none", border: "none", color: "rgba(255,255,255,0.5)", fontSize: "24px", cursor: "pointer", lineHeight: 1 }}
+      {/* Top bar */}
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ position: "fixed", top: 0, left: 0, right: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "0.9rem 1.25rem", pointerEvents: "none" }}
       >
-        ×
-      </button>
+        {multi && (
+          <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)", letterSpacing: "0.05em" }}>
+            {idx + 1} / {images.length}
+          </span>
+        )}
+        <div style={{ position: "absolute", right: "1.25rem", display: "flex", gap: "0.75rem", pointerEvents: "all" }}>
+          <button
+            onClick={e => { e.stopPropagation(); setZoomed(z => !z); }}
+            style={topBtn}
+            title={zoomed ? "Fit to screen" : "100% zoom"}
+          >
+            {zoomed ? "Fit" : "1:1"}
+          </button>
+          <button onClick={e => { e.stopPropagation(); onClose(); }} style={topBtn}>×</button>
+        </div>
+      </div>
 
       {/* Prev */}
       {multi && (
-        <button
-          onClick={e => { e.stopPropagation(); onPrev(); }}
-          style={arrowBtn("left")}
-        >
-          ‹
-        </button>
+        <button onClick={e => { e.stopPropagation(); onPrev(); }} style={arrowBtn("left")}>‹</button>
       )}
 
       {/* Image */}
@@ -178,17 +188,21 @@ function Lightbox({ images, idx, onClose, onPrev, onNext }) {
         src={images[idx].url}
         alt=""
         onClick={e => e.stopPropagation()}
-        style={{ maxHeight: "92vh", maxWidth: "90vw", objectFit: "contain", display: "block", userSelect: "none" }}
+        style={{
+          display: "block",
+          userSelect: "none",
+          cursor: zoomed ? "zoom-out" : "zoom-in",
+          ...(zoomed
+            ? { width: "auto", height: "auto", maxWidth: "none", maxHeight: "none", margin: "3.5rem auto 2rem" }
+            : { maxHeight: "92vh", maxWidth: "90vw", objectFit: "contain" }
+          ),
+        }}
+        onDoubleClick={e => { e.stopPropagation(); setZoomed(z => !z); }}
       />
 
       {/* Next */}
       {multi && (
-        <button
-          onClick={e => { e.stopPropagation(); onNext(); }}
-          style={arrowBtn("right")}
-        >
-          ›
-        </button>
+        <button onClick={e => { e.stopPropagation(); onNext(); }} style={arrowBtn("right")}>›</button>
       )}
     </div>
   );
@@ -291,3 +305,4 @@ function MetaRow({ label, value }) {
 
 const backLink = { fontSize: "13px", color: "var(--text-muted)", textDecoration: "none", display: "block", marginBottom: "0" };
 const sectionLabel = { fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", fontWeight: 500 };
+const topBtn = { background: "none", border: "none", color: "rgba(255,255,255,0.55)", fontSize: "15px", cursor: "pointer", padding: "2px 4px", fontFamily: "var(--font-body)" };
