@@ -226,7 +226,7 @@ export default function AdminBookForm() {
             <CurationPanel
               bookId={parseInt(id)}
               onImagesAdded={loadBook}
-              onAssignText={(field, text) => setForm(f => ({ ...f, [field]: f[field] ? f[field] + "\n\n" + text : text }))}
+              onAssignText={(field, text) => set(field, text)}
             />
           </Section>
 

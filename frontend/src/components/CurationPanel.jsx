@@ -6,23 +6,26 @@ export default function CurationPanel({ bookId, onImagesAdded, onAssignText }) {
   const [scrape, setScrape] = useState(null);
   const [scraping, setScraping] = useState(false);
   const [scrapeError, setScrapeError] = useState(null);
-
   const [imageSizes, setImageSizes] = useState({});
 
   const [coverUrl, setCoverUrl] = useState(null);
   const [spreadUrls, setSpreadUrls] = useState([]);
 
-  const [downloading, setDownloading] = useState(false);
-  const [downloadError, setDownloadError] = useState(null);
-  const [downloadDone, setDownloadDone] = useState(false);
+  const [selectedBlocks, setSelectedBlocks] = useState(new Set());
+  const [textTarget, setTextTarget] = useState("description");
+
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState(null);
+  const [addDone, setAddDone] = useState(false);
 
   async function doScrape(force = false) {
     if (!url.trim()) return;
     setScraping(true);
     setScrapeError(null);
-    setDownloadDone(false);
+    setAddDone(false);
     setCoverUrl(null);
     setSpreadUrls([]);
+    setSelectedBlocks(new Set());
     try {
       const result = await api.scrape(url.trim(), force);
       setScrape(result);
@@ -59,35 +62,47 @@ export default function CurationPanel({ bookId, onImagesAdded, onAssignText }) {
     }
   }
 
-  async function downloadSelected() {
-    const toDownload = [];
-    if (coverUrl) toDownload.push({ url: coverUrl, role: "cover" });
-    for (const u of spreadUrls) toDownload.push({ url: u, role: "spread" });
-    if (toDownload.length === 0) return;
+  function toggleBlock(i) {
+    setSelectedBlocks(prev => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i); else next.add(i);
+      return next;
+    });
+  }
 
-    setDownloading(true);
-    setDownloadError(null);
-    setDownloadDone(false);
+  const imageCount = (coverUrl ? 1 : 0) + spreadUrls.length;
+  const previewText = scrape
+    ? scrape.text_blocks.filter((_, i) => selectedBlocks.has(i)).join("\n\n")
+    : "";
+  const hasAnything = imageCount > 0 || selectedBlocks.size > 0;
+
+  async function addToBook() {
+    setAdding(true);
+    setAddError(null);
+    setAddDone(false);
     try {
+      const toDownload = [];
+      if (coverUrl) toDownload.push({ url: coverUrl, role: "cover" });
+      for (const u of spreadUrls) toDownload.push({ url: u, role: "spread" });
       for (const { url: imgUrl, role } of toDownload) {
         await api.downloadImage(bookId, imgUrl, role);
       }
-      onImagesAdded();
+      if (toDownload.length > 0) onImagesAdded();
+      if (selectedBlocks.size > 0) onAssignText(textTarget, previewText);
       setCoverUrl(null);
       setSpreadUrls([]);
-      setDownloadDone(true);
+      setSelectedBlocks(new Set());
+      setAddDone(true);
     } catch (e) {
-      setDownloadError(e.message);
+      setAddError(e.message);
     } finally {
-      setDownloading(false);
+      setAdding(false);
     }
   }
 
-  const selectedCount = (coverUrl ? 1 : 0) + spreadUrls.length;
-
   return (
     <div>
-      {/* URL input row */}
+      {/* URL input */}
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.75rem" }}>
         <input
           value={url}
@@ -116,18 +131,11 @@ export default function CurationPanel({ bookId, onImagesAdded, onAssignText }) {
         </p>
       )}
 
+      {/* Images */}
       {scrape && scrape.image_urls.length > 0 && (
         <div style={{ marginBottom: "1.5rem" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.5rem" }}>
-            <span style={sectionLabel}>Images</span>
-            {selectedCount > 0 && (
-              <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                {coverUrl ? "1 cover" : ""}{coverUrl && spreadUrls.length > 0 ? ", " : ""}{spreadUrls.length > 0 ? `${spreadUrls.length} spread${spreadUrls.length > 1 ? "s" : ""}` : ""} selected
-              </span>
-            )}
-          </div>
-
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.75rem" }}>
+          <span style={sectionLabel}>Images</span>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", margin: "0.5rem 0" }}>
             {scrape.image_urls.map((imgUrl, i) => {
               const isCover = coverUrl === imgUrl;
               const isSpread = spreadUrls.includes(imgUrl);
@@ -146,31 +154,63 @@ export default function CurationPanel({ bookId, onImagesAdded, onAssignText }) {
               );
             })}
           </div>
-
-          {selectedCount > 0 && (
-            <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
-              <button onClick={downloadSelected} disabled={downloading} style={actionBtn}>
-                {downloading ? "Downloading…" : `Download selected (${selectedCount})`}
-              </button>
-              {downloadDone && <span style={{ fontSize: "13px", color: "var(--success, #a3be8c)" }}>Done</span>}
-              {downloadError && <span style={{ fontSize: "13px", color: "var(--danger)" }}>{downloadError}</span>}
-            </div>
-          )}
         </div>
       )}
 
+      {/* Text blocks */}
       {scrape && scrape.text_blocks.length > 0 && (
-        <div>
-          <span style={sectionLabel}>Text blocks</span>
+        <div style={{ marginBottom: "1rem" }}>
+          <span style={sectionLabel}>Text blocks — click to select</span>
           <div style={{ marginTop: "0.5rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
             {scrape.text_blocks.map((block, i) => (
               <TextBlock
                 key={i}
                 text={block}
-                onAssign={field => onAssignText(field, block)}
+                selected={selectedBlocks.has(i)}
+                onToggle={() => toggleBlock(i)}
               />
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Preview + add */}
+      {scrape && selectedBlocks.size > 0 && (
+        <div style={{ marginBottom: "1rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.4rem" }}>
+            <span style={sectionLabel}>Text preview</span>
+            <div style={{ display: "flex", gap: "0.75rem", fontSize: "13px" }}>
+              {["description", "colophon"].map(field => (
+                <label key={field} style={{ display: "flex", alignItems: "center", gap: "0.3rem", cursor: "pointer", color: textTarget === field ? "var(--accent)" : "var(--text-muted)" }}>
+                  <input
+                    type="radio"
+                    name="textTarget"
+                    value={field}
+                    checked={textTarget === field}
+                    onChange={() => setTextTarget(field)}
+                    style={{ accentColor: "var(--accent)" }}
+                  />
+                  {field.charAt(0).toUpperCase() + field.slice(1)}
+                </label>
+              ))}
+            </div>
+          </div>
+          <textarea
+            readOnly
+            value={previewText}
+            style={{ ...inputStyle, height: "140px", resize: "vertical", fontSize: "12px", fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}
+          />
+        </div>
+      )}
+
+      {/* Action button */}
+      {scrape && hasAnything && (
+        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+          <button onClick={addToBook} disabled={adding} style={actionBtn}>
+            {adding ? "Adding…" : `Add to book${imageCount > 0 ? ` (${imageCount} image${imageCount > 1 ? "s" : ""})` : ""}${selectedBlocks.size > 0 ? ` + ${selectedBlocks.size} text block${selectedBlocks.size > 1 ? "s" : ""}` : ""}`}
+          </button>
+          {addDone && <span style={{ fontSize: "13px", color: "var(--accent)" }}>Done</span>}
+          {addError && <span style={{ fontSize: "13px", color: "var(--danger)" }}>{addError}</span>}
         </div>
       )}
     </div>
@@ -225,27 +265,10 @@ function ImageCard({ url, isCover, isSpread, spreadIdx, sizeBytes, onCover, onSp
         </div>
       )}
       <div style={{ display: "flex", borderTop: "1px solid var(--border)" }}>
-        <button
-          onClick={onCover}
-          style={{
-            ...miniBtn,
-            flex: 1,
-            color: isCover ? "var(--accent)" : "var(--text-muted)",
-            borderRight: "1px solid var(--border)",
-          }}
-          title="Set as cover"
-        >
+        <button onClick={onCover} style={{ ...miniBtn, flex: 1, color: isCover ? "var(--accent)" : "var(--text-muted)", borderRight: "1px solid var(--border)" }}>
           Cover
         </button>
-        <button
-          onClick={onSpread}
-          style={{
-            ...miniBtn,
-            flex: 1,
-            color: isSpread ? "#5e81ac" : "var(--text-muted)",
-          }}
-          title="Add as spread"
-        >
+        <button onClick={onSpread} style={{ ...miniBtn, flex: 1, color: isSpread ? "#5e81ac" : "var(--text-muted)" }}>
           Spread
         </button>
       </div>
@@ -253,47 +276,37 @@ function ImageCard({ url, isCover, isSpread, spreadIdx, sizeBytes, onCover, onSp
   );
 }
 
-function TextBlock({ text, onAssign }) {
+function TextBlock({ text, selected, onToggle }) {
   const [expanded, setExpanded] = useState(false);
-  const [assigned, setAssigned] = useState([]);
   const preview = text.length > 200 && !expanded ? text.slice(0, 200) + "…" : text;
 
-  function handleAssign(field) {
-    if (assigned.includes(field)) {
-      setAssigned(prev => prev.filter(f => f !== field));
-    } else {
-      onAssign(field);
-      setAssigned(prev => [...prev, field]);
-    }
-  }
-
-  const isAssigned = assigned.length > 0;
-
   return (
-    <div style={{
-      background: isAssigned ? "var(--bg-elevated)" : "var(--bg-highlight)",
-      border: `1px solid ${isAssigned ? "var(--accent)" : "var(--border)"}`,
-      borderRadius: "4px",
-      padding: "0.6rem 0.75rem",
-    }}>
-      <p style={{ margin: "0 0 0.5rem", fontSize: "13px", color: "var(--text)", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
+    <div
+      onClick={onToggle}
+      style={{
+        background: selected ? "#4c566a" : "var(--bg-highlight)",
+        border: `2px solid ${selected ? "var(--accent)" : "var(--border)"}`,
+        borderRadius: "4px",
+        padding: "0.6rem 0.75rem",
+        cursor: "pointer",
+      }}
+    >
+      {selected && (
+        <div style={{ fontSize: "10px", color: "var(--accent)", fontWeight: 600, marginBottom: "0.3rem", letterSpacing: "0.04em" }}>
+          SELECTED
+        </div>
+      )}
+      <p style={{ margin: 0, fontSize: "13px", color: "var(--text)", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
         {preview}
         {text.length > 200 && (
-          <button onClick={() => setExpanded(e => !e)} style={{ ...ghostBtn, marginLeft: "0.5rem", padding: "0 4px", fontSize: "12px" }}>
+          <button
+            onClick={e => { e.stopPropagation(); setExpanded(v => !v); }}
+            style={{ ...ghostBtn, marginLeft: "0.5rem", padding: "0 4px", fontSize: "12px" }}
+          >
             {expanded ? "less" : "more"}
           </button>
         )}
       </p>
-      <div style={{ display: "flex", gap: "0.5rem" }}>
-        <button
-          onClick={() => handleAssign("description")}
-          style={{ ...ghostBtn, ...(assigned.includes("description") ? assignedBtn : {}) }}
-        >→ Description</button>
-        <button
-          onClick={() => handleAssign("colophon")}
-          style={{ ...ghostBtn, ...(assigned.includes("colophon") ? assignedBtn : {}) }}
-        >→ Colophon</button>
-      </div>
     </div>
   );
 }
@@ -301,7 +314,7 @@ function TextBlock({ text, onAssign }) {
 const inputStyle = {
   flex: 1, padding: "0.5rem 0.6rem", background: "var(--bg-highlight)",
   border: "1px solid var(--border)", borderRadius: "4px", color: "var(--text)",
-  fontFamily: "var(--font-body)", fontSize: "14px",
+  fontFamily: "var(--font-body)", fontSize: "14px", width: "100%", boxSizing: "border-box",
 };
 const actionBtn = {
   background: "var(--accent-dim)", color: "var(--text-bright)", border: "none",
@@ -321,5 +334,4 @@ const sectionLabel = {
   fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.06em",
   color: "var(--text-muted)", fontWeight: 500,
 };
-const assignedBtn = { color: "var(--accent)", borderColor: "var(--accent)" };
 const errorStyle = { color: "var(--danger)", fontSize: "13px", margin: "0 0 0.75rem" };
