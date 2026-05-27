@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PublicFooter from "../components/PublicFooter";
+import ThemeToggle from "../components/ThemeToggle";
 
 function useDebounce(value, delay) {
   const [debounced, setDebounced] = useState(value);
@@ -72,9 +73,12 @@ export default function Gallery() {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <div style={{ padding: "2.5rem 3rem 0" }}>
-        <h1 style={{ margin: "0 0 2rem", fontSize: "26px", fontWeight: 700, color: "var(--text-bright)", letterSpacing: "0.02em" }}>
-          Spread
-        </h1>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+          <h1 style={{ margin: 0, fontSize: "26px", fontWeight: 700, color: "var(--text-bright)", letterSpacing: "0.02em" }}>
+            Spread
+          </h1>
+          <ThemeToggle />
+        </div>
 
         <input
           value={q}

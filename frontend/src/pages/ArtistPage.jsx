@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import PublicFooter from "../components/PublicFooter";
+import ThemeToggle from "../components/ThemeToggle";
 
 export default function ArtistPage() {
   const { slug } = useParams();
@@ -29,7 +30,10 @@ export default function ArtistPage() {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <div style={{ flex: 1, padding: "2.5rem 3rem" }}>
-        <Link to="/" style={backLink}>← Spread</Link>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Link to="/" style={backLink}>← Spread</Link>
+          <ThemeToggle />
+        </div>
 
         <h1 style={{ margin: "1.5rem 0 0.35rem", fontSize: "28px", fontWeight: 700, color: "var(--text-bright)" }}>
           {artist.name}

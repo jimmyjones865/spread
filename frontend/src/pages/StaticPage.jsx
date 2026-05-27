@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import PublicFooter from "../components/PublicFooter";
+import ThemeToggle from "../components/ThemeToggle";
 
 export default function StaticPage() {
   const { slug } = useParams();
@@ -29,9 +30,10 @@ export default function StaticPage() {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <div style={{ flex: 1, padding: "2.5rem 3rem", maxWidth: "760px" }}>
-        <Link to="/" style={{ fontSize: "13px", color: "var(--text-muted)", textDecoration: "none", display: "block", marginBottom: "2rem" }}>
-          ← Spread
-        </Link>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+          <Link to="/" style={{ fontSize: "13px", color: "var(--text-muted)", textDecoration: "none" }}>← Spread</Link>
+          <ThemeToggle />
+        </div>
         <h1 style={{ margin: "0 0 2rem", fontSize: "26px", fontWeight: 700, color: "var(--text-bright)" }}>
           {page.title}
         </h1>

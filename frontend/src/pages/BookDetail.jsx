@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import PublicFooter from "../components/PublicFooter";
+import ThemeToggle from "../components/ThemeToggle";
 
 function useIsMobile() {
   const [mobile, setMobile] = useState(() => window.innerWidth < 768);
@@ -111,7 +112,10 @@ export default function BookDetail() {
       {isMobile ? (
         <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
           <div style={{ padding: "1.5rem 1.5rem 2rem" }}>
+            <div style={backLinkRow}>
             <Link to="/" style={backLink}>← Spread</Link>
+            <ThemeToggle />
+          </div>
             {metadata}
           </div>
           <div>{imageList}</div>
@@ -122,7 +126,10 @@ export default function BookDetail() {
           {/* Left — metadata */}
           <div style={{ width: "28%", minWidth: "240px", maxWidth: "360px", height: "100vh", overflow: "hidden", borderRight: "1px solid var(--border)", flexShrink: 0 }}>
             <div ref={leftInnerRef} style={{ padding: "2rem 2rem 3rem" }}>
-              <Link to="/" style={backLink}>← Spread</Link>
+              <div style={backLinkRow}>
+            <Link to="/" style={backLink}>← Spread</Link>
+            <ThemeToggle />
+          </div>
               {metadata}
             </div>
           </div>
@@ -332,6 +339,7 @@ function MetaRow({ label, value }) {
   );
 }
 
-const backLink = { fontSize: "13px", color: "var(--text-muted)", textDecoration: "none", display: "block", marginBottom: "0" };
+const backLinkRow = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0" };
+const backLink = { fontSize: "13px", color: "var(--text-muted)", textDecoration: "none" };
 const sectionLabel = { fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", fontWeight: 500 };
 const topBtn = { background: "none", border: "none", color: "rgba(255,255,255,0.55)", fontSize: "15px", cursor: "pointer", padding: "2px 4px", fontFamily: "var(--font-body)" };
