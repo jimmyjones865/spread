@@ -77,8 +77,12 @@ async def health():
     return {"ok": True}
 
 
-# SPA catch-all — must be last
+# SPA static assets and catch-all — must be last
 STATIC_DIR = Path("static")
+
+if (STATIC_DIR / "assets").exists():
+    app.mount("/assets", StaticFiles(directory=str(STATIC_DIR / "assets")), name="spa-assets")
+
 
 @app.get("/{full_path:path}", include_in_schema=False)
 async def serve_spa(full_path: str):
