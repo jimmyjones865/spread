@@ -86,19 +86,15 @@ Everything else (edition label, signed, numbered, print run, ISBN, description, 
 
 ```caddyfile
 spread.example.com {
-    reverse_proxy localhost:8000
+    reverse_proxy localhost:8000 {
+        header_up X-Real-IP {remote_host}
+    }
 }
 ```
 
 Caddy handles HTTPS automatically. Make sure `COOKIE_SECURE=true` in `.env` when running behind Caddy.
 
-If the app is on a different host:
-
-```caddyfile
-spread.example.com {
-    reverse_proxy 192.168.1.10:8000
-}
-```
+`header_up X-Real-IP {remote_host}` passes the real client IP to the app so per-IP rate limiting works correctly. Without it, the login rate limit would treat all visitors as a single client (the Docker bridge IP).
 
 ---
 

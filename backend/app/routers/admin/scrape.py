@@ -3,7 +3,7 @@ import json
 import re
 from datetime import datetime
 from html.parser import HTMLParser as _HTMLParser
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
@@ -19,6 +19,7 @@ router = APIRouter(prefix="/api/admin/scrape", dependencies=[Depends(require_adm
 
 JINA_BASE = "https://r.jina.ai/"
 SCRAPE_TIMEOUT = 30.0
+MAX_REDIRECTS = 5
 
 IMAGE_RE = re.compile(r'!\[.*?\]\((https?://[^\s)]+)\)')
 IMG_EXT_RE = re.compile(
@@ -119,6 +120,28 @@ def _extract_html_image_urls(html_text: str) -> list[str]:
     return parser.urls
 
 
+async def _fetch_html_safe(client: httpx.AsyncClient, url: str) -> httpx.Response | None:
+    """Fetch raw HTML following redirects, re-checking SSRF on each hop."""
+    current_url = url
+    for _ in range(MAX_REDIRECTS + 1):
+        ok, _ = is_safe_url(current_url)
+        if not ok:
+            return None
+        resp = await client.get(
+            current_url,
+            headers={"User-Agent": "Mozilla/5.0 (compatible)", "Accept": "text/html,*/*"},
+            follow_redirects=False,
+        )
+        if resp.is_redirect:
+            location = resp.headers.get("location", "")
+            if not location:
+                return None
+            current_url = urljoin(current_url, location)
+            continue
+        return resp
+    return None
+
+
 class ScrapeRequest(BaseModel):
     url: str
     force: bool = False
@@ -207,10 +230,10 @@ async def scrape(body: ScrapeRequest, db: Session = Depends(get_db)):
 
     jina_url = JINA_BASE + url
     try:
-        async with httpx.AsyncClient(timeout=SCRAPE_TIMEOUT, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=SCRAPE_TIMEOUT) as client:
             jina_resp, html_resp = await asyncio.gather(
-                client.get(jina_url, headers={"Accept": "text/markdown"}),
-                client.get(url, headers={"User-Agent": "Mozilla/5.0 (compatible)", "Accept": "text/html,*/*"}),
+                client.get(jina_url, headers={"Accept": "text/markdown"}, follow_redirects=True),
+                _fetch_html_safe(client, url),
                 return_exceptions=True,
             )
     except Exception as e:
@@ -232,7 +255,7 @@ async def scrape(body: ScrapeRequest, db: Session = Depends(get_db)):
     # - <a href="full.jpg"><img> lightbox anchors
     # - data-src / data-zoom / etc. lazy-load attributes (sans template placeholders)
     # - Script JSON blobs (e.g. Shopify product media arrays)
-    if not isinstance(html_resp, Exception) and html_resp.is_success:
+    if html_resp is not None and not isinstance(html_resp, Exception) and html_resp.is_success:
         html_urls = _extract_html_image_urls(html_resp.text)
         seen_bases = {_base_url(u) for u in parsed_data["image_urls"]}
         for u in html_urls:

@@ -13,6 +13,12 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from pydantic import BaseModel
 
+
+def _real_ip(request: Request) -> str:
+    # Caddy sets X-Real-IP to the actual client IP. Falls back to socket peer
+    # address when running without a proxy (local dev).
+    return request.headers.get("X-Real-IP") or get_remote_address(request)
+
 from app.auth import (
     verify_password, create_session_token, require_admin,
     SESSION_COOKIE, SESSION_MAX_AGE, log_login,
@@ -22,7 +28,7 @@ from app.routers import public
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=_real_ip)
 
 _CSP = (
     "default-src 'self'; "
