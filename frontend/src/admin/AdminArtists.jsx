@@ -5,6 +5,7 @@ import ConfirmModal from "../components/ConfirmModal";
 
 export default function AdminArtists() {
   const [artists, setArtists] = useState([]);
+  const [query, setQuery] = useState("");
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteError, setDeleteError] = useState(null);
   const navigate = useNavigate();
@@ -35,15 +36,25 @@ export default function AdminArtists() {
       </div>
 
       {deleteError && <p style={{ color: "var(--danger)", marginBottom: "1rem", fontSize: "14px" }}>{deleteError}</p>}
+
+      <input
+        value={query}
+        onChange={e => setQuery(e.target.value)}
+        placeholder="Search artists…"
+        style={searchInput}
+      />
+
       {artists.length === 0 && <p style={{ color: "var(--text-muted)" }}>No artists yet.</p>}
 
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <tbody>
-          {artists.map(artist => (
+          {artists.filter(a => !query || a.name.toLowerCase().includes(query.toLowerCase())).map(artist => (
             <tr key={artist.id} style={{ borderBottom: "1px solid var(--border)" }}>
               <td style={{ padding: "0.6rem 0.5rem" }}>
                 <div style={{ fontSize: "14px", color: "var(--text)", fontWeight: 500 }}>{artist.name}</div>
-                {artist.country && <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>{artist.country}</div>}
+                <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                  {[artist.country, `${artist.book_count} ${artist.book_count === 1 ? "book" : "books"}`].filter(Boolean).join(" · ")}
+                </div>
               </td>
               <td style={{ padding: "0.6rem 0.5rem", textAlign: "right" }}>
                 <button onClick={() => navigate(`/admin/artists/${artist.id}`)} style={ghostBtn}>Edit</button>
@@ -68,3 +79,4 @@ export default function AdminArtists() {
 const h1 = { margin: 0, fontSize: "22px", fontWeight: 600, color: "var(--text-bright)" };
 const primaryBtn = { background: "var(--accent-dim)", color: "var(--text-bright)", border: "none", borderRadius: "4px", padding: "0.5rem 1.25rem", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "14px" };
 const ghostBtn = { background: "none", color: "var(--text-muted)", border: "none", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "13px", padding: "0.25rem 0.5rem" };
+const searchInput = { width: "100%", padding: "0.5rem 0.6rem", marginBottom: "1rem", background: "var(--bg-highlight)", border: "1px solid var(--border)", borderRadius: "4px", color: "var(--text)", fontFamily: "var(--font-body)", fontSize: "14px" };

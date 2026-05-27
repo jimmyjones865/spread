@@ -72,6 +72,7 @@ export default function AdminBookForm() {
   const [allTags, setAllTags] = useState([]);
   const [selectedTags, setSelectedTags] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [error, setError] = useState(null);
 
   async function loadTags() {
@@ -108,6 +109,8 @@ export default function AdminBookForm() {
       } else {
         await api.updateBook(id, payload);
         await loadBook();
+        setSaved(true);
+        setTimeout(() => setSaved(false), 1500);
       }
     } catch (e) {
       setError(e.message);
@@ -200,9 +203,12 @@ export default function AdminBookForm() {
         </Section>
 
         <div style={{ marginBottom: "2rem" }}>
-          <button type="submit" disabled={saving} style={primaryBtn}>
-            {saving ? "Saving…" : isNew ? "Create book" : "Save changes"}
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <button type="submit" disabled={saving} style={primaryBtn}>
+              {saving ? "Saving…" : isNew ? "Create book" : "Save changes"}
+            </button>
+            {saved && <span style={{ fontSize: "13px", color: "var(--accent)" }}>✓ Saved</span>}
+          </div>
         </div>
       </form>
 
@@ -220,7 +226,7 @@ export default function AdminBookForm() {
             <CurationPanel
               bookId={parseInt(id)}
               onImagesAdded={loadBook}
-              onAssignText={(field, text) => set(field, text)}
+              onAssignText={(field, text) => setForm(f => ({ ...f, [field]: f[field] ? f[field] + "\n\n" + text : text }))}
             />
           </Section>
 

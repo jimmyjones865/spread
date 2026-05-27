@@ -7,6 +7,8 @@ export default function CurationPanel({ bookId, onImagesAdded, onAssignText }) {
   const [scraping, setScraping] = useState(false);
   const [scrapeError, setScrapeError] = useState(null);
 
+  const [imageSizes, setImageSizes] = useState({});
+
   const [coverUrl, setCoverUrl] = useState(null);
   const [spreadUrls, setSpreadUrls] = useState([]);
 
@@ -24,6 +26,14 @@ export default function CurationPanel({ bookId, onImagesAdded, onAssignText }) {
     try {
       const result = await api.scrape(url.trim(), force);
       setScrape(result);
+      setImageSizes({});
+      if (result.image_urls.length > 0) {
+        api.imageMeta(result.image_urls).then(({ sizes }) => {
+          const map = {};
+          for (const { url: u, content_length } of sizes) map[u] = content_length;
+          setImageSizes(map);
+        }).catch(() => {});
+      }
     } catch (e) {
       setScrapeError(e.message);
     } finally {
@@ -129,6 +139,7 @@ export default function CurationPanel({ bookId, onImagesAdded, onAssignText }) {
                   isCover={isCover}
                   isSpread={isSpread}
                   spreadIdx={spreadIdx}
+                  sizeBytes={imageSizes[imgUrl] ?? null}
                   onCover={() => toggleCover(imgUrl)}
                   onSpread={() => toggleSpread(imgUrl)}
                 />
@@ -166,7 +177,13 @@ export default function CurationPanel({ bookId, onImagesAdded, onAssignText }) {
   );
 }
 
-function ImageCard({ url, isCover, isSpread, spreadIdx, onCover, onSpread }) {
+function fmtSize(bytes) {
+  if (bytes == null) return null;
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  return `${Math.round(bytes / 1024)} KB`;
+}
+
+function ImageCard({ url, isCover, isSpread, spreadIdx, sizeBytes, onCover, onSpread }) {
   const [broken, setBroken] = useState(false);
   const highlight = isCover ? "#4c566a" : isSpread ? "#3b4252" : "transparent";
   const borderColor = isCover ? "var(--accent)" : isSpread ? "#5e81ac" : "var(--border)";
@@ -202,6 +219,11 @@ function ImageCard({ url, isCover, isSpread, spreadIdx, onCover, onSpread }) {
           </div>
         )}
       </div>
+      {fmtSize(sizeBytes) && (
+        <div style={{ fontSize: "10px", color: "var(--text-muted)", textAlign: "center", padding: "2px 0", borderTop: "1px solid var(--border)" }}>
+          {fmtSize(sizeBytes)}
+        </div>
+      )}
       <div style={{ display: "flex", borderTop: "1px solid var(--border)" }}>
         <button
           onClick={onCover}
@@ -233,12 +255,20 @@ function ImageCard({ url, isCover, isSpread, spreadIdx, onCover, onSpread }) {
 
 function TextBlock({ text, onAssign }) {
   const [expanded, setExpanded] = useState(false);
+  const [assigned, setAssigned] = useState([]);
   const preview = text.length > 200 && !expanded ? text.slice(0, 200) + "…" : text;
+
+  function handleAssign(field) {
+    onAssign(field);
+    setAssigned(prev => prev.includes(field) ? prev : [...prev, field]);
+  }
+
+  const isAssigned = assigned.length > 0;
 
   return (
     <div style={{
-      background: "var(--bg-highlight)",
-      border: "1px solid var(--border)",
+      background: isAssigned ? "var(--bg-elevated)" : "var(--bg-highlight)",
+      border: `1px solid ${isAssigned ? "var(--accent)" : "var(--border)"}`,
       borderRadius: "4px",
       padding: "0.6rem 0.75rem",
     }}>
@@ -251,8 +281,14 @@ function TextBlock({ text, onAssign }) {
         )}
       </p>
       <div style={{ display: "flex", gap: "0.5rem" }}>
-        <button onClick={() => onAssign("description")} style={ghostBtn}>→ Description</button>
-        <button onClick={() => onAssign("colophon")} style={ghostBtn}>→ Colophon</button>
+        <button
+          onClick={() => handleAssign("description")}
+          style={{ ...ghostBtn, ...(assigned.includes("description") ? assignedBtn : {}) }}
+        >→ Description</button>
+        <button
+          onClick={() => handleAssign("colophon")}
+          style={{ ...ghostBtn, ...(assigned.includes("colophon") ? assignedBtn : {}) }}
+        >→ Colophon</button>
       </div>
     </div>
   );
@@ -281,4 +317,5 @@ const sectionLabel = {
   fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.06em",
   color: "var(--text-muted)", fontWeight: 500,
 };
+const assignedBtn = { color: "var(--accent)", borderColor: "var(--accent)" };
 const errorStyle = { color: "var(--danger)", fontSize: "13px", margin: "0 0 0.75rem" };

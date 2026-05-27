@@ -27,6 +27,10 @@ class ArtistOut(ArtistBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ArtistListOut(ArtistOut):
+    book_count: int = 0
+
+
 class TagOut(BaseModel):
     id: int
     name: str

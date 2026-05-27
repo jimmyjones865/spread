@@ -83,6 +83,9 @@ export default {
   scrape:            (url, force = false) => post("/api/admin/scrape", { url, force }),
 
   // Download image from URL
-  downloadImage:     (bookId, url, role) =>
+  downloadImage: (bookId, url, role) =>
     post(`/api/admin/books/${bookId}/images/from-url`, { url, role }),
+
+  // Image size hints (HEAD requests via backend)
+  imageMeta: (urls) => post("/api/admin/image-meta", { urls }),
 };

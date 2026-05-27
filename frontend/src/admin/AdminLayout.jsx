@@ -19,11 +19,11 @@ export default function AdminLayout() {
   if (auth === false) return <AdminLogin />;
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
       <nav style={{
         width: "180px", flexShrink: 0, background: "var(--bg-elevated)",
         borderRight: "1px solid var(--border)", display: "flex",
-        flexDirection: "column", padding: "1.5rem 0",
+        flexDirection: "column", padding: "1.5rem 0", overflowY: "auto",
       }}>
         <span style={{
           padding: "0 1.25rem 1.5rem", fontSize: "16px",

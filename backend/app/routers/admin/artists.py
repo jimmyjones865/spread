@@ -1,18 +1,25 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.auth import require_admin
-from app.models import Artist
-from app.schemas import ArtistCreate, ArtistUpdate, ArtistOut
+from app.models import Artist, Book
+from app.schemas import ArtistCreate, ArtistUpdate, ArtistOut, ArtistListOut
 from app.utils.slugs import unique_slug
 
 router = APIRouter(prefix="/api/admin/artists", dependencies=[Depends(require_admin)])
 
 
-@router.get("", response_model=list[ArtistOut])
+@router.get("", response_model=list[ArtistListOut])
 def list_artists(db: Session = Depends(get_db)):
-    return db.query(Artist).order_by(Artist.name).all()
+    counts = dict(
+        db.query(Book.artist_id, func.count(Book.id)).group_by(Book.artist_id).all()
+    )
+    artists = db.query(Artist).order_by(Artist.name).all()
+    for a in artists:
+        a.book_count = counts.get(a.id, 0)
+    return artists
 
 
 @router.post("", response_model=ArtistOut)

@@ -2,6 +2,19 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../api";
 
+const COUNTRIES = [
+  ["AR", "Argentina"], ["AU", "Australia"], ["AT", "Austria"], ["BE", "Belgium"],
+  ["BR", "Brazil"], ["CA", "Canada"], ["CN", "China"], ["HR", "Croatia"],
+  ["CZ", "Czech Republic"], ["DK", "Denmark"], ["EG", "Egypt"], ["FI", "Finland"],
+  ["FR", "France"], ["DE", "Germany"], ["GR", "Greece"], ["HU", "Hungary"],
+  ["IN", "India"], ["IR", "Iran"], ["IL", "Israel"], ["IT", "Italy"],
+  ["JP", "Japan"], ["KR", "Korea"], ["MX", "Mexico"], ["NL", "Netherlands"],
+  ["NZ", "New Zealand"], ["NG", "Nigeria"], ["NO", "Norway"], ["PL", "Poland"],
+  ["PT", "Portugal"], ["RO", "Romania"], ["RU", "Russia"], ["ZA", "South Africa"],
+  ["ES", "Spain"], ["SE", "Sweden"], ["CH", "Switzerland"], ["TR", "Turkey"],
+  ["UA", "Ukraine"], ["GB", "United Kingdom"], ["US", "United States"],
+];
+
 const EMPTY = { name: "", country: "", instagram: "", website: "", bio: "" };
 
 export default function AdminArtistForm() {
@@ -65,7 +78,20 @@ export default function AdminArtistForm() {
 
       <form onSubmit={save}>
         <Field label="Name *"><Input value={form.name} onChange={v => set("name", v)} required /></Field>
-        <Field label="Country"><Input value={form.country} onChange={v => set("country", v)} placeholder="DE, JP, US…" /></Field>
+        <Field label="Country">
+          <input
+            list="countries"
+            value={form.country}
+            onChange={e => set("country", e.target.value)}
+            placeholder="DE, JP, US…"
+            style={inputStyle}
+          />
+          <datalist id="countries">
+            {COUNTRIES.map(([code, name]) => (
+              <option key={code} value={code}>{name}</option>
+            ))}
+          </datalist>
+        </Field>
         <Field label="Instagram"><Input value={form.instagram} onChange={v => set("instagram", v)} placeholder="handle (no @)" /></Field>
         <Field label="Website"><Input value={form.website} onChange={v => set("website", v)} placeholder="https://…" /></Field>
         <Field label="Bio">
