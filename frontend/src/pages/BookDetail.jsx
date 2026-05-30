@@ -93,7 +93,7 @@ export default function BookDetail() {
     />
   ));
   const bookNav = (prevSlug || nextSlug) && (
-    <div style={{ display: "flex", justifyContent: "space-between", padding: "0.75rem 2rem 3rem" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", padding: "0.75rem 2rem" }}>
       {prevSlug
         ? <button onClick={() => navigateBook(prevSlug)} style={navBtn}>← Prev</button>
         : <span />}
