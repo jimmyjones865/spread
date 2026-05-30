@@ -14,11 +14,11 @@ export default function PublicFooter() {
 
   return (
     <footer style={{
-      padding: "1.5rem 3rem",
-      borderTop: "1px solid var(--border)",
+      padding: "1rem 3rem 1.5rem",
       display: "flex",
       gap: "1.5rem",
       flexWrap: "wrap",
+      opacity: 0.6,
     }}>
       {items.map((item, i) =>
         item.type === "link" ? (

@@ -87,7 +87,7 @@ export default function BookDetail() {
     />
   ));
   const bookNav = (prevSlug || nextSlug) && (
-    <div style={{ display: "flex", justifyContent: "space-between", padding: "2rem" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", padding: "0.75rem 2rem 3rem" }}>
       {prevSlug
         ? <button onClick={() => navigateBook(prevSlug)} style={navBtn}>← Prev</button>
         : <span />}
@@ -124,7 +124,7 @@ export default function BookDetail() {
       ) : (
         <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
           {/* Left — metadata */}
-          <div style={{ width: "28%", minWidth: "240px", maxWidth: "360px", height: "100vh", overflowY: "auto", borderRight: "1px solid var(--border)", flexShrink: 0 }}>
+          <div className="no-scrollbar" style={{ width: "28%", minWidth: "240px", maxWidth: "360px", height: "100vh", overflowY: "auto", borderRight: "1px solid var(--border)", flexShrink: 0 }}>
             <div ref={leftInnerRef} style={{ padding: "2rem 2rem 3rem" }}>
               <div style={{ marginBottom: "0" }}>
                 <Link to="/" style={backLink}>← Spread</Link>
@@ -134,7 +134,7 @@ export default function BookDetail() {
           </div>
 
           {/* Right — images */}
-          <div ref={rightRef} style={{ flex: 1, overflowY: "auto", height: "100vh", maxWidth: imgColWidth }}>
+          <div ref={rightRef} className="no-scrollbar" style={{ flex: 1, overflowY: "auto", height: "100vh", maxWidth: imgColWidth }}>
             {imageList}
             {bookNav}
           </div>
@@ -346,6 +346,6 @@ function BookMeta({ book }) {
 }
 
 const backLink = { fontSize: "13px", color: "var(--text-muted)", textDecoration: "none" };
-const navBtn = { background: "none", border: "1px solid var(--border)", borderRadius: "6px", padding: "0.5rem 1rem", cursor: "pointer", color: "var(--text-muted)", fontFamily: "var(--font-body)", fontSize: "13px" };
+const navBtn = { background: "none", border: "none", padding: "0.5rem 0", cursor: "pointer", color: "var(--text-muted)", fontFamily: "var(--font-body)", fontSize: "13px", opacity: 0.6 };
 const sectionLabel = { fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", fontWeight: 500 };
 const topBtn = { background: "none", border: "none", color: "rgba(255,255,255,0.55)", fontSize: "15px", cursor: "pointer", padding: "2px 4px", fontFamily: "var(--font-body)" };

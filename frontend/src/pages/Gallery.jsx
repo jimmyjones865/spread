@@ -117,6 +117,8 @@ export default function Gallery() {
     localStorage.setItem("spread_card_width", w);
   }
 
+  const [searchOpen, setSearchOpen] = useState(false);
+
   const activeFilterCount =
     [q, artistId, yearFrom, yearTo, language, status].filter(Boolean).length +
     (signed ? 1 : 0) + (numbered ? 1 : 0) + activeTags.size;
@@ -124,23 +126,46 @@ export default function Gallery() {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       {/* Header */}
-      <div style={{ padding: isMobile ? "2rem 1.5rem 1.5rem" : "2rem 2.5rem 1.5rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <h1 style={{ margin: 0, fontSize: "24px", fontWeight: 700, color: "var(--text-bright)", letterSpacing: "0.02em" }}>
-          {siteTitle}
-        </h1>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+      <div style={{ padding: isMobile ? "2rem 1.5rem 1.5rem" : "2rem 2.5rem 1.5rem", display: "flex", alignItems: "center", gap: "0.6rem" }}>
+        {(!isMobile || !searchOpen) && (
+          <h1 style={{ margin: 0, fontSize: "24px", fontWeight: 700, color: "var(--text-bright)", letterSpacing: "0.02em", flex: isMobile ? 1 : "none" }}>
+            {siteTitle}
+          </h1>
+        )}
+        {isMobile ? (
+          searchOpen ? (
+            <>
+              <input
+                autoFocus
+                value={q}
+                onChange={e => setQ(e.target.value)}
+                placeholder="Search…"
+                style={{ ...searchInput, flex: 1, width: "auto" }}
+              />
+              <button onClick={() => { setSearchOpen(false); setQ(""); }} style={iconBtn} title="Close search">✕</button>
+            </>
+          ) : (
+            <button onClick={() => setSearchOpen(true)} style={iconBtn} title="Search">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ display: "block" }}>
+                <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" strokeWidth="1.5" />
+                <line x1="10" y1="10" x2="14" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </button>
+          )
+        ) : (
           <input
             value={q}
             onChange={e => setQ(e.target.value)}
             placeholder="Search…"
             style={searchInput}
           />
-          <ThemeToggle />
-          <button
-            onClick={() => setPanelOpen(true)}
-            title="Filters"
-            style={{ ...filterBtn, ...(activeFilterCount > 0 ? { color: "var(--accent)", borderColor: "var(--accent)" } : {}) }}
-          >
+        )}
+        {(!isMobile || !searchOpen) && <ThemeToggle />}
+        <button
+          onClick={() => setPanelOpen(true)}
+          title="Filters"
+          style={{ ...filterBtn, ...(activeFilterCount > 0 ? { color: "var(--accent)", borderColor: "var(--accent)" } : {}) }}
+        >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ display: "block" }}>
               <line x1="1" y1="4" x2="15" y2="4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
               <circle cx="5" cy="4" r="1.75" stroke="currentColor" strokeWidth="1.5" style={{ fill: "var(--bg-elevated)" }}/>
@@ -151,7 +176,6 @@ export default function Gallery() {
             </svg>
             {activeFilterCount > 0 && <span style={{ position: "absolute", top: "-5px", right: "-5px", background: "var(--accent)", color: "var(--text-bright)", borderRadius: "50%", fontSize: "10px", width: "16px", height: "16px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600 }}>{activeFilterCount}</span>}
           </button>
-        </div>
       </div>
 
       {/* Book grid */}
@@ -318,7 +342,7 @@ function BookCard({ book, onClick }) {
       <div style={{
         position: "relative", width: "100%", paddingBottom: "135%",
         background: "var(--bg-elevated)", borderRadius: "3px", overflow: "hidden",
-        marginBottom: "0.5rem", border: "1px solid var(--border)",
+        marginBottom: "0.5rem",
       }}>
         {book.cover_url ? (
           <img
@@ -345,6 +369,11 @@ function BookCard({ book, onClick }) {
   );
 }
 
+const iconBtn = {
+  background: "none", border: "1px solid var(--border)", borderRadius: "6px",
+  padding: "0.45rem 0.55rem", color: "var(--text-muted)", cursor: "pointer",
+  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+};
 const searchInput = {
   padding: "0.45rem 0.65rem", background: "var(--bg-elevated)",
   border: "1px solid var(--border)", borderRadius: "6px",
