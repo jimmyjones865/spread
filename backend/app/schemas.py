@@ -53,6 +53,7 @@ class BookImageOut(BaseModel):
     sort_order: int
     width: int | None
     height: int | None
+    file_size: int | None
     model_config = ConfigDict(from_attributes=True)
 
 

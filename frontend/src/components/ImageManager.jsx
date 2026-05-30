@@ -1,11 +1,34 @@
 import { useState, useRef } from "react";
+import {
+  DndContext,
+  closestCenter,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  arrayMove,
+  rectSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import api from "../api";
 import ConfirmModal from "./ConfirmModal";
+
+function fmtSize(bytes) {
+  if (!bytes) return null;
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  return `${Math.round(bytes / 1024)} KB`;
+}
 
 export default function ImageManager({ bookId, images, onChange }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [activeId, setActiveId] = useState(null);
   const fileRef = useRef();
 
   const sorted = [...images].sort((a, b) => {
@@ -13,6 +36,11 @@ export default function ImageManager({ bookId, images, onChange }) {
     if (b.role === "cover" && a.role !== "cover") return 1;
     return a.sort_order - b.sort_order;
   });
+
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+  );
 
   async function upload(file, role) {
     setUploading(true);
@@ -27,8 +55,14 @@ export default function ImageManager({ bookId, images, onChange }) {
     }
   }
 
-  async function setCover(imgId) {
-    await api.setImageRole(bookId, imgId, "cover");
+  async function handleDragEnd(event) {
+    const { active, over } = event;
+    setActiveId(null);
+    if (!over || active.id === over.id) return;
+    const oldIndex = sorted.findIndex(i => i.id === active.id);
+    const newIndex = sorted.findIndex(i => i.id === over.id);
+    const newOrder = arrayMove(sorted, oldIndex, newIndex).map(i => i.id);
+    await api.reorderImages(bookId, newOrder);
     await onChange();
   }
 
@@ -38,20 +72,7 @@ export default function ImageManager({ bookId, images, onChange }) {
     await onChange();
   }
 
-  async function move(imgId, direction) {
-    const spreadImages = sorted.filter(i => i.role === "spread");
-    const idx = spreadImages.findIndex(i => i.id === imgId);
-    if (idx < 0) return;
-    const swapIdx = idx + direction;
-    if (swapIdx < 0 || swapIdx >= spreadImages.length) return;
-    const newOrder = spreadImages.map(i => i.id);
-    [newOrder[idx], newOrder[swapIdx]] = [newOrder[swapIdx], newOrder[idx]];
-    await api.reorderImages(bookId, newOrder);
-    await onChange();
-  }
-
-  const cover = sorted.find(i => i.role === "cover");
-  const spreads = sorted.filter(i => i.role === "spread");
+  const activeImg = activeId ? sorted.find(i => i.id === activeId) : null;
 
   return (
     <div>
@@ -85,30 +106,39 @@ export default function ImageManager({ bookId, images, onChange }) {
         />
       </div>
 
-      {cover && (
-        <div style={{ marginBottom: "1.5rem" }}>
-          <p style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "0.5rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Cover</p>
-          <ImageRow img={cover} bookId={bookId} onDelete={setDeleteTarget} isFirst={false} isLast={false} showMove={false} />
-        </div>
-      )}
-
-      {spreads.length > 0 && (
-        <div>
-          <p style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "0.5rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Spreads</p>
-          {spreads.map((img, idx) => (
-            <ImageRow
-              key={img.id}
-              img={img}
-              bookId={bookId}
-              onDelete={setDeleteTarget}
-              onSetCover={() => setCover(img.id)}
-              onMove={(dir) => move(img.id, dir)}
-              isFirst={idx === 0}
-              isLast={idx === spreads.length - 1}
-              showMove={true}
-            />
-          ))}
-        </div>
+      {sorted.length > 0 && (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={e => setActiveId(e.active.id)}
+          onDragEnd={handleDragEnd}
+          onDragCancel={() => setActiveId(null)}
+        >
+          <SortableContext items={sorted.map(i => i.id)} strategy={rectSortingStrategy}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: "0.75rem" }}>
+              {sorted.map((img, idx) => (
+                <SortableImageCard
+                  key={img.id}
+                  img={img}
+                  bookId={bookId}
+                  isCover={idx === 0}
+                  onDelete={() => setDeleteTarget(img.id)}
+                />
+              ))}
+            </div>
+          </SortableContext>
+          <DragOverlay>
+            {activeImg && (
+              <ImageCard
+                img={activeImg}
+                bookId={bookId}
+                isCover={false}
+                onDelete={() => {}}
+                isDragOverlay
+              />
+            )}
+          </DragOverlay>
+        </DndContext>
       )}
 
       {deleteTarget && (
@@ -122,23 +152,65 @@ export default function ImageManager({ bookId, images, onChange }) {
   );
 }
 
-function ImageRow({ img, bookId, onDelete, onSetCover, onMove, isFirst, isLast, showMove }) {
+function SortableImageCard({ img, bookId, isCover, onDelete }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: img.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <ImageCard img={img} bookId={bookId} isCover={isCover} onDelete={onDelete} />
+    </div>
+  );
+}
+
+function ImageCard({ img, bookId, isCover, onDelete, isDragOverlay }) {
   const url = `/images/${bookId}/${img.filename}`;
   return (
     <div style={{
-      display: "flex", alignItems: "center", gap: "0.75rem",
-      padding: "0.5rem", marginBottom: "0.5rem",
-      background: "var(--bg-highlight)", borderRadius: "4px",
+      position: "relative",
+      background: "var(--bg-highlight)",
+      borderRadius: "6px",
+      overflow: "hidden",
+      cursor: isDragOverlay ? "grabbing" : "grab",
+      userSelect: "none",
     }}>
-      <img src={url} alt="" style={{ width: 60, height: 60, objectFit: "cover", borderRadius: "2px", flexShrink: 0 }} />
-      <span style={{ fontSize: "12px", color: "var(--text-muted)", fontFamily: "var(--font-mono)", flexGrow: 1 }}>
-        {img.width && img.height ? `${img.width}×${img.height}` : ""}
-      </span>
-      <div style={{ display: "flex", gap: "0.5rem", flexShrink: 0 }}>
-        {showMove && <button onClick={() => onMove(-1)} disabled={isFirst} style={smallBtn}>↑</button>}
-        {showMove && <button onClick={() => onMove(1)} disabled={isLast} style={smallBtn}>↓</button>}
-        {onSetCover && <button onClick={onSetCover} style={smallBtn}>Set cover</button>}
-        <button onClick={() => onDelete(img.id)} style={{ ...smallBtn, color: "var(--danger)" }}>✕</button>
+      <img
+        src={url}
+        alt=""
+        style={{ width: "100%", aspectRatio: "1", objectFit: "cover", display: "block" }}
+        draggable={false}
+      />
+      <button
+        onPointerDown={e => e.stopPropagation()}
+        onClick={onDelete}
+        style={{
+          position: "absolute", top: "4px", right: "4px",
+          background: "rgba(0,0,0,0.55)", border: "none", borderRadius: "50%",
+          color: "#fff", width: "22px", height: "22px", cursor: "pointer",
+          fontSize: "11px", display: "flex", alignItems: "center", justifyContent: "center",
+          lineHeight: 1,
+        }}
+      >✕</button>
+      {isCover && (
+        <div style={{
+          position: "absolute", top: "4px", left: "4px",
+          background: "var(--nord10, #5E81AC)", color: "#fff",
+          fontSize: "9px", fontWeight: "700", letterSpacing: "0.06em",
+          padding: "2px 5px", borderRadius: "3px", textTransform: "uppercase",
+        }}>Cover</div>
+      )}
+      <div style={{
+        padding: "0.35rem 0.5rem",
+        fontSize: "11px",
+        color: "var(--text-muted)",
+        fontFamily: "var(--font-mono)",
+        lineHeight: 1.5,
+      }}>
+        {img.width && img.height && <div>{img.width}×{img.height}</div>}
+        {img.file_size && <div>{fmtSize(img.file_size)}</div>}
       </div>
     </div>
   );
@@ -148,10 +220,4 @@ const uploadBtn = {
   background: "var(--bg-highlight)", color: "var(--text)", border: "1px solid var(--border)",
   borderRadius: "4px", padding: "0.4rem 1rem", cursor: "pointer",
   fontFamily: "var(--font-body)", fontSize: "14px",
-};
-
-const smallBtn = {
-  background: "none", color: "var(--text-muted)", border: "1px solid var(--border)",
-  borderRadius: "4px", padding: "0.25rem 0.5rem", cursor: "pointer",
-  fontFamily: "var(--font-body)", fontSize: "12px",
 };

@@ -84,6 +84,7 @@ class BookImage(Base):
     sort_order = Column(Integer, default=0, nullable=False)
     width = Column(Integer, nullable=True)
     height = Column(Integer, nullable=True)
+    file_size = Column(Integer, nullable=True)
 
     book = relationship("Book", back_populates="images")
 

@@ -182,6 +182,7 @@ async def upload_image(
         sort_order=next_order,
         width=width,
         height=height,
+        file_size=len(clean),
     )
     db.add(record)
     db.commit()
@@ -213,10 +214,21 @@ def delete_image(book_id: int, img_id: int, db: Session = Depends(get_db)):
     img = db.query(BookImage).filter(BookImage.id == img_id, BookImage.book_id == book_id).first()
     if not img:
         raise HTTPException(404)
+    was_cover = img.role == ImageRole.cover
     path = IMAGE_DIR / str(book_id) / img.filename
     if path.exists():
         path.unlink()
     db.delete(img)
+    db.flush()
+    if was_cover:
+        next_img = (
+            db.query(BookImage)
+            .filter(BookImage.book_id == book_id)
+            .order_by(BookImage.sort_order)
+            .first()
+        )
+        if next_img:
+            next_img.role = ImageRole.cover
     db.commit()
     return {"ok": True}
 
@@ -227,6 +239,7 @@ def reorder_images(book_id: int, body: ReorderBody, db: Session = Depends(get_db
         img = db.query(BookImage).filter(BookImage.id == img_id, BookImage.book_id == book_id).first()
         if img:
             img.sort_order = order
+            img.role = ImageRole.cover if order == 0 else ImageRole.spread
     db.commit()
     return {"ok": True}
 
@@ -311,6 +324,7 @@ async def download_image_from_url(
         sort_order=next_order,
         width=width,
         height=height,
+        file_size=len(clean),
     )
     db.add(record)
     db.commit()
