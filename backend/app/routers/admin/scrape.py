@@ -41,8 +41,24 @@ _SIZE_SUFFIX_RE = re.compile(r'_(\d+)x\d*\.', re.IGNORECASE)  # _300x.jpg, _2048
 _WIDTH_PARAM_RE = re.compile(r'[?&]width=\d+', re.IGNORECASE)
 
 
+def _shopify_filename_stem(url: str) -> str | None:
+    """
+    If url is from a Shopify CDN (shop domain /cdn/shop/files/ or global cdn.shopify.com),
+    return a normalized key using just the filename stem — so the same image served from
+    both CDN origins deduplicates correctly.
+    """
+    base = url.split("?")[0].split("#")[0]
+    if "/cdn/shop/files/" not in base and "//cdn.shopify.com/s/files/" not in base:
+        return None
+    filename = base.rsplit("/", 1)[-1]
+    return "shopify:" + _SIZE_SUFFIX_RE.sub(".", filename).lower()
+
+
 def _canonical_base(url: str) -> str:
     """Strip CDN size suffix and query/fragment for dedup grouping."""
+    shopify = _shopify_filename_stem(url)
+    if shopify:
+        return shopify
     base = url.split("?")[0].split("#")[0]
     return _SIZE_SUFFIX_RE.sub('.', base)
 
@@ -188,17 +204,27 @@ async def _try_shopify_product_json(client: httpx.AsyncClient, url: str) -> list
     except Exception:
         return []
 
+    def _norm(u):
+        if not isinstance(u, str) or not u:
+            return None
+        if u.startswith("http"):
+            return u
+        if u.startswith("//"):
+            return "https:" + u
+        return None
+
     urls = []
     for img in data.get("images", []):
-        if isinstance(img, str) and img.startswith("http"):
-            urls.append(img)
+        u = _norm(img)
+        if u:
+            urls.append(u)
     for item in data.get("media", []):
-        src = (item.get("src") or "").strip()
-        if src.startswith("http"):
-            urls.append(src)
-    fi = data.get("featured_image") or ""
-    if isinstance(fi, str) and fi.startswith("http"):
-        urls.append(fi)
+        u = _norm((item.get("src") or "").strip())
+        if u:
+            urls.append(u)
+    u = _norm(data.get("featured_image") or "")
+    if u:
+        urls.append(u)
     return urls
 
 
@@ -220,12 +246,16 @@ def _parse_jina_markdown(content: str) -> dict:
     seen: set[str] = set()  # tracks base URLs to deduplicate
     for m in IMAGE_RE.finditer(content):
         u = m.group(1)
+        if "{" in u:  # skip Shopify _{width}x template placeholders
+            continue
         base = _base_url(u)
         if base not in seen:
             image_urls.append(u)
             seen.add(base)
     for m in IMG_EXT_RE.finditer(content):
         u = m.group(1)
+        if "{" in u:
+            continue
         base = _base_url(u)
         if base not in seen:
             image_urls.append(u)

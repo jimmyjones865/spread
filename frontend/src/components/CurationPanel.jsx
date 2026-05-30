@@ -78,6 +78,15 @@ export default function CurationPanel({ bookId, onImagesAdded, onAddToBook }) {
     });
   }
 
+  const MIN_IMAGE_BYTES = 20 * 1024;
+  const sizesLoaded = Object.keys(imageSizes).length > 0;
+  const visibleImageUrls = !scrape ? [] : !sizesLoaded ? scrape.image_urls : scrape.image_urls.filter(imgUrl => {
+    const size = imageSizes[imgUrl];
+    if (size == null) return true;
+    return size >= MIN_IMAGE_BYTES;
+  });
+  const hiddenCount = scrape && sizesLoaded ? scrape.image_urls.length - visibleImageUrls.length : 0;
+
   const imageCount = (coverUrl ? 1 : 0) + spreadUrls.length;
   const descText = scrape
     ? scrape.text_blocks.filter((_, i) => descBlocks.has(i)).join("\n\n")
@@ -163,15 +172,23 @@ export default function CurationPanel({ bookId, onImagesAdded, onAddToBook }) {
           {scrape.from_cache ? "Cached" : "Fetched"} ·{" "}
           {new Date(scrape.scraped_at + "Z").toLocaleString("en-GB")} ·{" "}
           {scrape.image_urls.length} images · {scrape.text_blocks.length} text blocks
+          {!scraping && !sizesLoaded && scrape.image_urls.length > 0 && " · loading sizes…"}
         </p>
       )}
 
       {/* Images */}
       {scrape && scrape.image_urls.length > 0 && (
         <div style={{ marginBottom: "1.5rem" }}>
-          <span style={sectionLabel}>Images</span>
+          <div style={{ display: "flex", alignItems: "baseline", gap: "0.75rem", marginBottom: "0.5rem" }}>
+            <span style={sectionLabel}>Images</span>
+            {hiddenCount > 0 && (
+              <span style={{ fontSize: "11px", color: "var(--text-muted)", opacity: 0.7 }}>
+                {hiddenCount} hidden (&lt; 20 KB)
+              </span>
+            )}
+          </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", margin: "0.5rem 0" }}>
-            {scrape.image_urls.map((imgUrl, i) => {
+            {visibleImageUrls.map((imgUrl, i) => {
               const isCover = coverUrl === imgUrl;
               const isSpread = spreadUrls.includes(imgUrl);
               return (

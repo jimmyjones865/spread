@@ -4,6 +4,7 @@ import api from "../api";
 import ImageManager from "../components/ImageManager";
 import TagSelect from "../components/TagSelect";
 import CurationPanel from "../components/CurationPanel";
+import { useIsMobile } from "../hooks/useIsMobile";
 
 const LANGUAGES = [
   "English", "Japanese", "German", "French", "Italian", "Spanish",
@@ -382,9 +383,13 @@ function Section({ title, children }) {
 }
 
 function Row({ label, children }) {
+  const isMobile = useIsMobile();
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "140px 1fr", gap: "0.5rem 1rem", marginBottom: "0.75rem", alignItems: "start" }}>
-      <label style={{ fontSize: "13px", color: "var(--text-muted)", paddingTop: "0.5rem" }}>{label}</label>
+    <div style={isMobile
+      ? { marginBottom: "0.75rem" }
+      : { display: "grid", gridTemplateColumns: "140px 1fr", gap: "0.5rem 1rem", marginBottom: "0.75rem", alignItems: "start" }
+    }>
+      <label style={{ fontSize: "13px", color: "var(--text-muted)", display: "block", ...(isMobile ? { marginBottom: "0.25rem" } : { paddingTop: "0.5rem" }) }}>{label}</label>
       <div>{children}</div>
     </div>
   );
