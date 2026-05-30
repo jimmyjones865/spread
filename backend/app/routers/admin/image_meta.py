@@ -19,13 +19,19 @@ class ImageMetaRequest(BaseModel):
 async def _head_one(client: httpx.AsyncClient, url: str) -> dict:
     safe, _ = is_safe_url(url)
     if not safe:
-        return {"url": url, "content_length": None}
+        return {"url": url, "content_length": None, "reachable": False}
     try:
-        r = await client.head(url, follow_redirects=False)
-        cl = r.headers.get("content-length")
-        return {"url": url, "content_length": int(cl) if cl and cl.isdigit() else None}
+        r = await client.head(url, follow_redirects=True)
+        if r.is_success:
+            cl = r.headers.get("content-length")
+            return {
+                "url": url,
+                "content_length": int(cl) if cl and cl.isdigit() else None,
+                "reachable": True,
+            }
+        return {"url": url, "content_length": None, "reachable": False}
     except Exception:
-        return {"url": url, "content_length": None}
+        return {"url": url, "content_length": None, "reachable": False}
 
 
 @router.post("")

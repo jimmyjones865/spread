@@ -37,7 +37,7 @@ _DATA_ATTRS = {
     "data-full", "data-lazy-src", "data-hi-res", "data-image",
 }
 
-_SIZE_SUFFIX_RE = re.compile(r'_(\d+)x\d*\.', re.IGNORECASE)  # _300x.jpg, _2048x2048.jpg
+_SIZE_SUFFIX_RE = re.compile(r'_(\d+)x\d*(?:_[a-z]+)*\.', re.IGNORECASE)  # _300x.jpg, _2048x2048.jpg, _160x160_crop_center.jpg
 _WIDTH_PARAM_RE = re.compile(r'[?&]width=\d+', re.IGNORECASE)
 
 
@@ -246,7 +246,7 @@ def _parse_jina_markdown(content: str) -> dict:
     seen: set[str] = set()  # tracks base URLs to deduplicate
     for m in IMAGE_RE.finditer(content):
         u = m.group(1)
-        if "{" in u:  # skip Shopify _{width}x template placeholders
+        if "{" in u or "%7b" in u.lower():  # skip Shopify _{width}x template placeholders
             continue
         base = _base_url(u)
         if base not in seen:
@@ -254,7 +254,7 @@ def _parse_jina_markdown(content: str) -> dict:
             seen.add(base)
     for m in IMG_EXT_RE.finditer(content):
         u = m.group(1)
-        if "{" in u:
+        if "{" in u or "%7b" in u.lower():
             continue
         base = _base_url(u)
         if base not in seen:

@@ -7,6 +7,7 @@ export default function CurationPanel({ bookId, onImagesAdded, onAddToBook }) {
   const [scraping, setScraping] = useState(false);
   const [scrapeError, setScrapeError] = useState(null);
   const [imageSizes, setImageSizes] = useState({});
+  const [imageReachable, setImageReachable] = useState({});
 
   const [coverUrl, setCoverUrl] = useState(null);
   const [spreadUrls, setSpreadUrls] = useState([]);
@@ -38,11 +39,17 @@ export default function CurationPanel({ bookId, onImagesAdded, onAddToBook }) {
       setScrape(result);
       api.getBookScrapes(bookId).then(setHistory).catch(() => {});
       setImageSizes({});
+      setImageReachable({});
       if (result.image_urls.length > 0) {
         api.imageMeta(result.image_urls).then(({ sizes }) => {
-          const map = {};
-          for (const { url: u, content_length } of sizes) map[u] = content_length;
-          setImageSizes(map);
+          const sizeMap = {};
+          const reachableMap = {};
+          for (const { url: u, content_length, reachable } of sizes) {
+            sizeMap[u] = content_length;
+            reachableMap[u] = reachable !== false; // default true if field absent
+          }
+          setImageSizes(sizeMap);
+          setImageReachable(reachableMap);
         }).catch(() => {});
       }
     } catch (e) {
@@ -81,8 +88,9 @@ export default function CurationPanel({ bookId, onImagesAdded, onAddToBook }) {
   const MIN_IMAGE_BYTES = 20 * 1024;
   const sizesLoaded = Object.keys(imageSizes).length > 0;
   const visibleImageUrls = !scrape ? [] : !sizesLoaded ? scrape.image_urls : scrape.image_urls.filter(imgUrl => {
+    if (imageReachable[imgUrl] === false) return false; // dead URL
     const size = imageSizes[imgUrl];
-    if (size == null) return true;
+    if (size == null) return true; // reachable but no Content-Length → show
     return size >= MIN_IMAGE_BYTES;
   });
   const hiddenCount = scrape && sizesLoaded ? scrape.image_urls.length - visibleImageUrls.length : 0;
