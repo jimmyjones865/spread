@@ -22,7 +22,7 @@ export default function BookDetail() {
   const isMobile = useIsMobile();
 
   const rightRef = useRef(null);
-  const leftInnerRef = useRef(null);
+  const leftRef = useRef(null);
 
   const bookSlugs = location.state?.slugs ?? null;
   const slugIdx = bookSlugs ? bookSlugs.indexOf(slug) : -1;
@@ -32,6 +32,12 @@ export default function BookDetail() {
   function navigateBook(targetSlug) {
     navigate(`/books/${targetSlug}`, { state: { slugs: bookSlugs } });
   }
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    if (leftRef.current) leftRef.current.scrollTop = 0;
+    if (rightRef.current) rightRef.current.scrollTop = 0;
+  }, [slug]);
 
   useEffect(() => {
     fetch(`/api/books/${slug}`, { credentials: "include" })
@@ -111,7 +117,7 @@ export default function BookDetail() {
       )}
 
       {isMobile ? (
-        <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+        <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", paddingBottom: (prevSlug || nextSlug) ? "4rem" : 0 }}>
           <div style={{ padding: "1.5rem 1.5rem 2rem" }}>
             <div style={{ marginBottom: "0" }}>
               <Link to="/" style={backLink}>← Spread</Link>
@@ -119,13 +125,12 @@ export default function BookDetail() {
             {metadata}
           </div>
           <div>{imageList}</div>
-          {bookNav}
         </div>
       ) : (
         <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
           {/* Left — metadata */}
-          <div className="no-scrollbar" style={{ width: "28%", minWidth: "240px", maxWidth: "360px", height: "100vh", overflowY: "auto", borderRight: "1px solid var(--border)", flexShrink: 0 }}>
-            <div ref={leftInnerRef} style={{ padding: "2rem 2rem 3rem" }}>
+          <div ref={leftRef} className="no-scrollbar" style={{ width: "28%", minWidth: "240px", maxWidth: "360px", height: "100vh", overflowY: "auto", borderRight: "1px solid var(--border)", flexShrink: 0 }}>
+            <div style={{ padding: "2rem 2rem 3rem" }}>
               <div style={{ marginBottom: "0" }}>
                 <Link to="/" style={backLink}>← Spread</Link>
               </div>
@@ -138,6 +143,19 @@ export default function BookDetail() {
             {imageList}
             {bookNav}
           </div>
+        </div>
+      )}
+      {isMobile && (prevSlug || nextSlug) && (
+        <div style={{
+          position: "fixed", bottom: 0, left: 0, right: 0,
+          display: "flex", justifyContent: "space-between",
+          padding: "0.75rem 1.5rem",
+          background: "var(--bg)",
+          borderTop: "1px solid var(--border)",
+          zIndex: 10,
+        }}>
+          {prevSlug ? <button onClick={() => navigateBook(prevSlug)} style={navBtn}>← Prev</button> : <span />}
+          {nextSlug ? <button onClick={() => navigateBook(nextSlug)} style={navBtn}>Next →</button> : <span />}
         </div>
       )}
     </>
