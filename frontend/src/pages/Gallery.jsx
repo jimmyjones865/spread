@@ -380,7 +380,7 @@ const searchInput = {
   color: "var(--text)", fontFamily: "var(--font-body)", fontSize: "14px", width: "200px",
 };
 const filterBtn = {
-  padding: "0.45rem 0.55rem", background: "var(--bg-elevated)",
+  padding: "0.45rem 0.55rem", background: "none",
   border: "1px solid var(--border)", borderRadius: "6px",
   color: "var(--text-muted)", fontFamily: "var(--font-body)", fontSize: "13px",
   cursor: "pointer", position: "relative", lineHeight: 0,
