@@ -188,6 +188,15 @@ export default function CurationPanel({ bookId, onImagesAdded, onAddToBook }) {
               );
             })}
           </div>
+          {hasAnything && (
+            <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", marginTop: "0.5rem" }}>
+              <button onClick={addToBook} disabled={adding} style={actionBtn}>
+                {adding ? "Saving…" : "Add to book & save"}
+              </button>
+              {addDone && <span style={{ fontSize: "13px", color: "var(--accent)" }}>Saved</span>}
+              {addError && <span style={{ fontSize: "13px", color: "var(--danger)" }}>{addError}</span>}
+            </div>
+          )}
         </div>
       )}
 

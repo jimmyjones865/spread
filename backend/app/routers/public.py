@@ -11,6 +11,7 @@ from app.models import Book, Artist, Tag, BookImage, Page, FooterItem, ImageRole
 router = APIRouter()
 
 SITE_TITLE = os.getenv("SITE_TITLE", "Spread")
+IMAGE_MAX_WIDTH = int(os.getenv("IMAGE_MAX_WIDTH", "900"))
 
 
 def _is_admin(request: Request) -> bool:
@@ -232,4 +233,4 @@ def get_footer(db: Session = Depends(get_db)):
 
 @router.get("/api/config")
 def get_config():
-    return {"title": SITE_TITLE}
+    return {"title": SITE_TITLE, "image_max_width": IMAGE_MAX_WIDTH}

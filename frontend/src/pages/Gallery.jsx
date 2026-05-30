@@ -1,7 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import PublicFooter from "../components/PublicFooter";
 import ThemeToggle from "../components/ThemeToggle";
+
+function useIsMobile() {
+  const [mobile, setMobile] = useState(() => window.innerWidth < 768);
+  useEffect(() => {
+    const handler = () => setMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
+  return mobile;
+}
 
 function useDebounce(value, delay) {
   const [debounced, setDebounced] = useState(value);
@@ -14,6 +24,8 @@ function useDebounce(value, delay) {
 
 export default function Gallery() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
+  const scrollRestored = useRef(false);
 
   const [books, setBooks] = useState([]);
   const [artists, setArtists] = useState([]);
@@ -25,7 +37,7 @@ export default function Gallery() {
 
   const [cardWidth, setCardWidth] = useState(() => {
     const stored = localStorage.getItem("spread_card_width");
-    return stored ? parseInt(stored) : 190;
+    return stored ? parseInt(stored) : window.innerWidth < 768 ? 150 : 190;
   });
 
   const [q, setQ] = useState("");
@@ -72,7 +84,18 @@ export default function Gallery() {
     setLoading(true);
     fetch(`/api/books?${params}`, { credentials: "include" })
       .then(r => r.json())
-      .then(data => { setBooks(data); setLoading(false); })
+      .then(data => {
+        setBooks(data);
+        setLoading(false);
+        if (!scrollRestored.current) {
+          scrollRestored.current = true;
+          const y = sessionStorage.getItem("gallery_scroll");
+          if (y) {
+            sessionStorage.removeItem("gallery_scroll");
+            requestAnimationFrame(() => window.scrollTo(0, parseInt(y)));
+          }
+        }
+      })
       .catch(() => setLoading(false));
   }, [debouncedQ, artistId, yearFrom, yearTo, language, activeTags, status, signed, numbered, sort, order]);
 
@@ -101,7 +124,7 @@ export default function Gallery() {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       {/* Header */}
-      <div style={{ padding: "2rem 2.5rem 1.5rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div style={{ padding: isMobile ? "2rem 1.5rem 1.5rem" : "2rem 2.5rem 1.5rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <h1 style={{ margin: 0, fontSize: "24px", fontWeight: 700, color: "var(--text-bright)", letterSpacing: "0.02em" }}>
           {siteTitle}
         </h1>
@@ -132,7 +155,7 @@ export default function Gallery() {
       </div>
 
       {/* Book grid */}
-      <div style={{ flex: 1, padding: "0 2.5rem 3rem" }}>
+      <div style={{ flex: 1, padding: isMobile ? "0 1.5rem 3rem" : "0 2.5rem 3rem" }}>
         {loading ? (
           <p style={{ color: "var(--text-muted)", fontSize: "14px" }}>Loading…</p>
         ) : books.length === 0 ? (
@@ -144,7 +167,10 @@ export default function Gallery() {
             gap: "1.5rem",
           }}>
             {books.map(book => (
-              <BookCard key={book.slug} book={book} onClick={() => navigate(`/books/${book.slug}`)} />
+              <BookCard key={book.slug} book={book} onClick={() => {
+                sessionStorage.setItem("gallery_scroll", String(window.scrollY));
+                navigate(`/books/${book.slug}`, { state: { slugs: books.map(b => b.slug) } });
+              }} />
             ))}
           </div>
         )}

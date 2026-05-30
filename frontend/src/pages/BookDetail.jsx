@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useParams, Link } from "react-router-dom";
-import PublicFooter from "../components/PublicFooter";
+import { useParams, useLocation, useNavigate, Link } from "react-router-dom";
 
 function useIsMobile() {
   const [mobile, setMobile] = useState(() => window.innerWidth < 768);
@@ -14,13 +13,25 @@ function useIsMobile() {
 
 export default function BookDetail() {
   const { slug } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [book, setBook] = useState(null);
   const [notFound, setNotFound] = useState(false);
   const [lightboxIdx, setLightboxIdx] = useState(null);
+  const [imageMaxWidth, setImageMaxWidth] = useState(900);
   const isMobile = useIsMobile();
 
   const rightRef = useRef(null);
   const leftInnerRef = useRef(null);
+
+  const bookSlugs = location.state?.slugs ?? null;
+  const slugIdx = bookSlugs ? bookSlugs.indexOf(slug) : -1;
+  const prevSlug = slugIdx > 0 ? bookSlugs[slugIdx - 1] : null;
+  const nextSlug = slugIdx >= 0 && slugIdx < bookSlugs.length - 1 ? bookSlugs[slugIdx + 1] : null;
+
+  function navigateBook(targetSlug) {
+    navigate(`/books/${targetSlug}`, { state: { slugs: bookSlugs } });
+  }
 
   useEffect(() => {
     fetch(`/api/books/${slug}`, { credentials: "include" })
@@ -29,28 +40,11 @@ export default function BookDetail() {
       .catch(() => setNotFound(true));
   }, [slug]);
 
-  // Scroll sync (Superlabo-style: both cols bottom out together) — kept for reference.
-  // Currently disabled: both columns scroll independently instead.
-  // To re-enable: restore this effect and change left col outer div back to overflow: "hidden".
-  //
-  // useEffect(() => {
-  //   const right = rightRef.current;
-  //   const leftInner = leftInnerRef.current;
-  //   if (!right || !leftInner || !book || isMobile) return;
-  //   function sync() {
-  //     const rightMax = right.scrollHeight - right.clientHeight;
-  //     const leftOverflow = leftInner.offsetHeight - right.clientHeight;
-  //     if (rightMax <= 0 || leftOverflow <= 0) { leftInner.style.transform = "translateY(0)"; return; }
-  //     const threshold = rightMax - leftOverflow;
-  //     const translate = right.scrollTop <= threshold ? 0 : Math.min(right.scrollTop - threshold, leftOverflow);
-  //     leftInner.style.transform = `translateY(-${translate}px)`;
-  //   }
-  //   right.addEventListener("scroll", sync, { passive: true });
-  //   const ro = new ResizeObserver(sync);
-  //   ro.observe(leftInner);
-  //   ro.observe(right);
-  //   return () => { right.removeEventListener("scroll", sync); ro.disconnect(); };
-  // }, [book, isMobile]);
+  useEffect(() => {
+    fetch("/api/config").then(r => r.json()).then(d => {
+      if (d.image_max_width) setImageMaxWidth(d.image_max_width);
+    }).catch(() => {});
+  }, []);
 
   // Keyboard navigation for lightbox
   const closeLightbox = useCallback(() => setLightboxIdx(null), []);
@@ -76,6 +70,11 @@ export default function BookDetail() {
 
   if (!book) return null;
 
+  const imgWidths = book.images.map(i => i.width).filter(Boolean);
+  const imgColWidth = imgWidths.length > 0
+    ? Math.min(imageMaxWidth, Math.min(...imgWidths))
+    : imageMaxWidth;
+
   const metadata = <BookMeta book={book} />;
   const imageList = book.images.map((img, idx) => (
     <img
@@ -87,6 +86,16 @@ export default function BookDetail() {
       loading="lazy"
     />
   ));
+  const bookNav = (prevSlug || nextSlug) && (
+    <div style={{ display: "flex", justifyContent: "space-between", padding: "2rem" }}>
+      {prevSlug
+        ? <button onClick={() => navigateBook(prevSlug)} style={navBtn}>← Prev</button>
+        : <span />}
+      {nextSlug
+        ? <button onClick={() => navigateBook(nextSlug)} style={navBtn}>Next →</button>
+        : <span />}
+    </div>
+  );
 
   return (
     <>
@@ -110,7 +119,7 @@ export default function BookDetail() {
             {metadata}
           </div>
           <div>{imageList}</div>
-          <PublicFooter />
+          {bookNav}
         </div>
       ) : (
         <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
@@ -118,15 +127,16 @@ export default function BookDetail() {
           <div style={{ width: "28%", minWidth: "240px", maxWidth: "360px", height: "100vh", overflowY: "auto", borderRight: "1px solid var(--border)", flexShrink: 0 }}>
             <div ref={leftInnerRef} style={{ padding: "2rem 2rem 3rem" }}>
               <div style={{ marginBottom: "0" }}>
-              <Link to="/" style={backLink}>← Spread</Link>
-            </div>
+                <Link to="/" style={backLink}>← Spread</Link>
+              </div>
               {metadata}
             </div>
           </div>
 
           {/* Right — images */}
-          <div ref={rightRef} style={{ flex: 1, overflowY: "auto", height: "100vh" }}>
+          <div ref={rightRef} style={{ flex: 1, overflowY: "auto", height: "100vh", maxWidth: imgColWidth }}>
             {imageList}
+            {bookNav}
           </div>
         </div>
       )}
@@ -262,6 +272,7 @@ function BookMeta({ book }) {
   } else if (book.print_run) {
     editionParts.push(`Edition of ${book.print_run}`);
   }
+  if (book.edition_year) editionParts.push(String(book.edition_year));
   if (book.copy_number != null) editionParts.push(`copy ${book.copy_number}`);
   if (book.signed) editionParts.push("signed");
   if (book.numbered && book.copy_number == null) editionParts.push("numbered");
@@ -281,18 +292,6 @@ function BookMeta({ book }) {
         {editionLine && <div>{editionLine}</div>}
         {book.language && <div>{book.language}</div>}
       </div>
-
-      {book.tags.length > 0 && (
-        <div style={{ marginBottom: "1.25rem" }}>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem" }}>
-            {book.tags.map(tag => (
-              <span key={tag} style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "10px", background: "var(--bg-elevated)", color: "var(--text-muted)", border: "1px solid var(--border)" }}>
-                {tag}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
 
       {book.description && (
         <div style={{ marginBottom: "1.25rem" }}>
@@ -319,7 +318,7 @@ function BookMeta({ book }) {
       )}
 
       {book.links.length > 0 && (
-        <div>
+        <div style={{ marginBottom: "1.25rem" }}>
           <div style={sectionLabel}>Links</div>
           <div style={{ marginTop: "0.4rem", display: "flex", flexDirection: "column", gap: "0.3rem" }}>
             {book.links.map((lnk, i) => (
@@ -330,10 +329,23 @@ function BookMeta({ book }) {
           </div>
         </div>
       )}
+
+      {book.tags.length > 0 && (
+        <div style={{ marginTop: "auto", paddingTop: "0.5rem" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem" }}>
+            {book.tags.map(tag => (
+              <span key={tag} style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "10px", background: "var(--bg-elevated)", color: "var(--text-muted)", border: "1px solid var(--border)" }}>
+                {tag}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 const backLink = { fontSize: "13px", color: "var(--text-muted)", textDecoration: "none" };
+const navBtn = { background: "none", border: "1px solid var(--border)", borderRadius: "6px", padding: "0.5rem 1rem", cursor: "pointer", color: "var(--text-muted)", fontFamily: "var(--font-body)", fontSize: "13px" };
 const sectionLabel = { fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", fontWeight: 500 };
 const topBtn = { background: "none", border: "none", color: "rgba(255,255,255,0.55)", fontSize: "15px", cursor: "pointer", padding: "2px 4px", fontFamily: "var(--font-body)" };

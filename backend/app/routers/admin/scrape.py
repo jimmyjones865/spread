@@ -37,17 +37,41 @@ _DATA_ATTRS = {
     "data-full", "data-lazy-src", "data-hi-res", "data-image",
 }
 
-# Shopify/CDN patterns that indicate a resized variant, not the full-res original
-_SIZE_SUFFIX_RE = re.compile(r'_\d+x\d*\.', re.IGNORECASE)  # _300x.jpg, _1024x768.jpg
+_SIZE_SUFFIX_RE = re.compile(r'_(\d+)x\d*\.', re.IGNORECASE)  # _300x.jpg, _2048x2048.jpg
+_WIDTH_PARAM_RE = re.compile(r'[?&]width=\d+', re.IGNORECASE)
 
 
-def _is_sized_variant(url: str) -> bool:
-    """True if URL is a CDN-resized variant rather than the full-res original."""
-    if re.search(r'[?&]width=\d+', url, re.IGNORECASE):
-        return True
-    if _SIZE_SUFFIX_RE.search(url):
-        return True
-    return False
+def _canonical_base(url: str) -> str:
+    """Strip CDN size suffix and query/fragment for dedup grouping."""
+    base = url.split("?")[0].split("#")[0]
+    return _SIZE_SUFFIX_RE.sub('.', base)
+
+
+def _size_dim(url: str) -> int:
+    """Return the dimension from a CDN size suffix, or 999999 (preferred) if absent."""
+    base = url.split("?")[0].split("#")[0]
+    m = _SIZE_SUFFIX_RE.search(base)
+    return int(m.group(1)) if m else 999999
+
+
+def _pick_best_variants(urls: list[str]) -> list[str]:
+    """
+    For each group of CDN size variants (same canonical base), keep the largest.
+    Drops ?width= query-param resize URLs entirely (display hints, not file variants).
+    Preserves original ordering of first occurrence.
+    """
+    filtered = [u for u in urls if not _WIDTH_PARAM_RE.search(u)]
+    order: list[str] = []
+    best: dict[str, tuple[int, str]] = {}  # canonical → (dim, url)
+    for url in filtered:
+        canon = _canonical_base(url)
+        dim = _size_dim(url)
+        if canon not in best:
+            order.append(canon)
+            best[canon] = (dim, url)
+        elif dim > best[canon][0]:
+            best[canon] = (dim, url)
+    return [best[c][1] for c in order]
 
 
 def _normalize_url(url: str) -> str:
@@ -75,7 +99,7 @@ class _ImageLinkParser(_HTMLParser):
         attr_dict = dict(attrs)
         if tag == "a":
             href = attr_dict.get("href") or ""
-            if href and _HTML_IMG_RE.match(href) and "{" not in href and not _is_sized_variant(href):
+            if href and _HTML_IMG_RE.match(href) and "{" not in href and not _WIDTH_PARAM_RE.search(href):
                 self._a_href = _normalize_url(href)
             else:
                 self._a_href = None
@@ -84,7 +108,7 @@ class _ImageLinkParser(_HTMLParser):
                 self.urls.append(self._a_href)
             for attr in _DATA_ATTRS:
                 val = attr_dict.get(attr) or ""
-                if val and _HTML_IMG_RE.match(val) and "{" not in val and not _is_sized_variant(val):
+                if val and _HTML_IMG_RE.match(val) and "{" not in val and not _WIDTH_PARAM_RE.search(val):
                     self.urls.append(_normalize_url(val))
         elif tag == "script":
             self._in_script = True
@@ -106,7 +130,7 @@ class _ImageLinkParser(_HTMLParser):
                 script_text, re.IGNORECASE,
             ):
                 url = _normalize_url(m.group(0))
-                if "{" not in url and not _is_sized_variant(url):
+                if "{" not in url and not _WIDTH_PARAM_RE.search(url):
                     self.urls.append(url)
             self._script_chunks = []
 
@@ -140,6 +164,42 @@ async def _fetch_html_safe(client: httpx.AsyncClient, url: str) -> httpx.Respons
             continue
         return resp
     return None
+
+
+async def _try_shopify_product_json(client: httpx.AsyncClient, url: str) -> list[str]:
+    """Fetch Shopify product JSON endpoint (/products/handle.js) for full-res images."""
+    parsed = urlparse(url)
+    if "/products/" not in parsed.path:
+        return []
+    js_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path.rstrip('/')}.js"
+    ok, _ = is_safe_url(js_url)
+    if not ok:
+        return []
+    try:
+        resp = await client.get(
+            js_url,
+            headers={"Accept": "application/json", "User-Agent": "Mozilla/5.0 (compatible)"},
+            follow_redirects=True,
+            timeout=15.0,
+        )
+        if not resp.is_success:
+            return []
+        data = resp.json()
+    except Exception:
+        return []
+
+    urls = []
+    for img in data.get("images", []):
+        if isinstance(img, str) and img.startswith("http"):
+            urls.append(img)
+    for item in data.get("media", []):
+        src = (item.get("src") or "").strip()
+        if src.startswith("http"):
+            urls.append(src)
+    fi = data.get("featured_image") or ""
+    if isinstance(fi, str) and fi.startswith("http"):
+        urls.append(fi)
+    return urls
 
 
 class ScrapeRequest(BaseModel):
@@ -231,9 +291,10 @@ async def scrape(body: ScrapeRequest, db: Session = Depends(get_db)):
     jina_url = JINA_BASE + url
     try:
         async with httpx.AsyncClient(timeout=SCRAPE_TIMEOUT) as client:
-            jina_resp, html_resp = await asyncio.gather(
+            jina_resp, html_resp, shopify_urls = await asyncio.gather(
                 client.get(jina_url, headers={"Accept": "text/markdown"}, follow_redirects=True),
                 _fetch_html_safe(client, url),
+                _try_shopify_product_json(client, url),
                 return_exceptions=True,
             )
     except Exception as e:
@@ -251,18 +312,16 @@ async def scrape(body: ScrapeRequest, db: Session = Depends(get_db)):
     markdown = jina_resp.text
     parsed_data = _parse_jina_markdown(markdown)
 
-    # Augment with URLs from raw HTML that Jina's markdown conversion drops:
-    # - <a href="full.jpg"><img> lightbox anchors
-    # - data-src / data-zoom / etc. lazy-load attributes (sans template placeholders)
-    # - Script JSON blobs (e.g. Shopify product media arrays)
+    # Collect additional URLs from raw HTML and Shopify product JSON, then
+    # deduplicate across all sources keeping the largest CDN size variant per image.
+    html_urls = []
     if html_resp is not None and not isinstance(html_resp, Exception) and html_resp.is_success:
         html_urls = _extract_html_image_urls(html_resp.text)
-        seen_bases = {_base_url(u) for u in parsed_data["image_urls"]}
-        for u in html_urls:
-            base = _base_url(u)
-            if base not in seen_bases:
-                parsed_data["image_urls"].append(u)
-                seen_bases.add(base)
+
+    extra_shopify = shopify_urls if isinstance(shopify_urls, list) else []
+
+    all_urls = parsed_data["image_urls"] + html_urls + extra_shopify
+    parsed_data["image_urls"] = _pick_best_variants(all_urls)
 
     content_json = json.dumps(parsed_data)
     now = datetime.utcnow()

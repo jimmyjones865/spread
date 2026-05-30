@@ -30,7 +30,7 @@ function parseLanguages(str) {
 }
 
 const EMPTY = {
-  title: "", artist_id: "", publisher: "", year: "", edition: "",
+  title: "", artist_id: "", publisher: "", year: "", edition: "", edition_year: "",
   language: [], isbn: "", signed: false, numbered: false,
   print_run: "", copy_number: "", status: "owned", hidden: false,
   acquisition_year: "", price_paid: "", description: "", colophon: "", notes: "",
@@ -44,6 +44,7 @@ function toForm(book) {
     publisher: book.publisher ?? "",
     year: book.year != null ? String(book.year) : "",
     edition: book.edition ?? "",
+    edition_year: book.edition_year != null ? String(book.edition_year) : "",
     language: parseLanguages(book.language ?? ""),
     isbn: book.isbn ?? "",
     signed: book.signed ?? false,
@@ -68,6 +69,7 @@ function toPayload(form) {
     publisher: form.publisher || null,
     year: form.year ? parseInt(form.year) : null,
     edition: form.edition || null,
+    edition_year: form.edition_year ? parseInt(form.edition_year) : null,
     language: form.language.join(" / ") || null,
     isbn: form.isbn || null,
     signed: form.signed,
@@ -194,6 +196,7 @@ export default function AdminBookForm() {
         </Section>
 
         <Section title="Edition details">
+          <Row label="Edition year"><Input value={form.edition_year} onChange={v => set("edition_year", v)} type="number" placeholder="Year of this edition" /></Row>
           <Row label="Print run"><Input value={form.print_run} onChange={v => set("print_run", v)} type="number" placeholder="Total copies" /></Row>
           <Row label="Copy number"><Input value={form.copy_number} onChange={v => set("copy_number", v)} type="number" /></Row>
           <Row label="">

@@ -101,6 +101,7 @@ class BookBase(BaseModel):
     description: str | None = None
     colophon: str | None = None
     notes: str | None = None
+    edition_year: int | None = None
 
 
 class BookCreate(BookBase):
