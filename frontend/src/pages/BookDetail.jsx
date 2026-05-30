@@ -117,7 +117,7 @@ export default function BookDetail() {
       )}
 
       {isMobile ? (
-        <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", paddingBottom: (prevSlug || nextSlug) ? "4rem" : 0 }}>
+        <div>
           <div style={{ padding: "1.5rem 1.5rem 2rem" }}>
             <div style={{ marginBottom: "0" }}>
               <Link to="/" style={backLink}>← Spread</Link>
@@ -125,6 +125,7 @@ export default function BookDetail() {
             {metadata}
           </div>
           <div>{imageList}</div>
+          {bookNav}
         </div>
       ) : (
         <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
@@ -143,19 +144,6 @@ export default function BookDetail() {
             {imageList}
             {bookNav}
           </div>
-        </div>
-      )}
-      {isMobile && (prevSlug || nextSlug) && (
-        <div style={{
-          position: "fixed", bottom: 0, left: 0, right: 0,
-          display: "flex", justifyContent: "space-between",
-          padding: "0.75rem 1.5rem",
-          background: "var(--bg)",
-          borderTop: "1px solid var(--border)",
-          zIndex: 10,
-        }}>
-          {prevSlug ? <button onClick={() => navigateBook(prevSlug)} style={navBtn}>← Prev</button> : <span />}
-          {nextSlug ? <button onClick={() => navigateBook(nextSlug)} style={navBtn}>Next →</button> : <span />}
         </div>
       )}
     </>
