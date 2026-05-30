@@ -127,40 +127,31 @@ export default function Gallery() {
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       {/* Header */}
       <div style={{ padding: isMobile ? "2rem 1.5rem 1.5rem" : "2rem 2.5rem 1.5rem", display: "flex", alignItems: "center", gap: "0.6rem" }}>
-        {(!isMobile || !searchOpen) && (
-          <h1 style={{ margin: 0, fontSize: "24px", fontWeight: 700, color: "var(--text-bright)", letterSpacing: "0.02em", flex: isMobile ? 1 : "none" }}>
+        {!searchOpen && (
+          <h1 style={{ margin: 0, fontSize: "24px", fontWeight: 700, color: "var(--text-bright)", letterSpacing: "0.02em", flex: 1 }}>
             {siteTitle}
           </h1>
         )}
-        {isMobile ? (
-          searchOpen ? (
-            <>
-              <input
-                autoFocus
-                value={q}
-                onChange={e => setQ(e.target.value)}
-                placeholder="Search…"
-                style={{ ...searchInput, flex: 1, width: "auto" }}
-              />
-              <button onClick={() => { setSearchOpen(false); setQ(""); }} style={iconBtn} title="Close search">✕</button>
-            </>
-          ) : (
-            <button onClick={() => setSearchOpen(true)} style={iconBtn} title="Search">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ display: "block" }}>
-                <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" strokeWidth="1.5" />
-                <line x1="10" y1="10" x2="14" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            </button>
-          )
+        {searchOpen ? (
+          <>
+            <input
+              autoFocus
+              value={q}
+              onChange={e => setQ(e.target.value)}
+              placeholder="Search…"
+              style={{ ...searchInput, flex: 1, width: "auto" }}
+            />
+            <button onClick={() => { setSearchOpen(false); setQ(""); }} style={iconBtn} title="Close search">✕</button>
+          </>
         ) : (
-          <input
-            value={q}
-            onChange={e => setQ(e.target.value)}
-            placeholder="Search…"
-            style={{ ...searchInput, marginLeft: "auto" }}
-          />
+          <button onClick={() => setSearchOpen(true)} style={iconBtn} title="Search">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ display: "block" }}>
+              <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" strokeWidth="1.5" />
+              <line x1="10" y1="10" x2="14" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
         )}
-        {(!isMobile || !searchOpen) && <ThemeToggle />}
+        {!searchOpen && <ThemeToggle />}
         <button
           onClick={() => setPanelOpen(true)}
           title="Filters"

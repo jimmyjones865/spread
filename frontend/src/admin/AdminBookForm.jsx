@@ -115,7 +115,7 @@ export default function AdminBookForm() {
   }
 
   useEffect(() => {
-    api.getArtists().then(setArtists);
+    loadArtists();
     loadTags();
     if (!isNew) loadBook();
   }, [id]);
@@ -124,8 +124,17 @@ export default function AdminBookForm() {
     setForm(f => ({ ...f, [key]: value }));
   }
 
+  async function loadArtists() {
+    const data = await api.getArtists();
+    setArtists(data);
+  }
+
   async function save(e) {
     e.preventDefault();
+    if (!form.artist_id) {
+      setError("Artist is required");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -182,16 +191,18 @@ export default function AdminBookForm() {
             <Input value={form.title} onChange={v => set("title", v)} required />
           </Row>
           <Row label="Artist *">
-            <select value={form.artist_id} onChange={e => set("artist_id", e.target.value)} required style={inputStyle}>
-              <option value="">Select artist…</option>
-              {artists.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
+            <ArtistCombobox
+              artists={artists}
+              value={form.artist_id}
+              onChange={v => set("artist_id", v)}
+              onArtistsChanged={loadArtists}
+            />
           </Row>
           <Row label="Publisher"><Input value={form.publisher} onChange={v => set("publisher", v)} /></Row>
           <Row label="Year"><Input value={form.year} onChange={v => set("year", v)} type="number" /></Row>
           <Row label="Edition"><Input value={form.edition} onChange={v => set("edition", v)} placeholder='e.g. "1st", "XL"' /></Row>
           <Row label="Language">
-            <LanguageSelect value={form.language} onChange={v => set("language", v)} />
+            <LanguageCombobox value={form.language} onChange={v => set("language", v)} />
           </Row>
           <Row label="ISBN"><Input value={form.isbn} onChange={v => set("isbn", v)} /></Row>
         </Section>
@@ -344,29 +355,145 @@ function LinkManager({ bookId, links, onChanged }) {
   );
 }
 
-function LanguageSelect({ value, onChange }) {
-  function toggle(lang) {
-    if (value.includes(lang)) onChange(value.filter(l => l !== lang));
-    else onChange([...value, lang]);
+function ArtistCombobox({ artists, value, onChange, onArtistsChanged }) {
+  const [input, setInput] = useState("");
+  const [creating, setCreating] = useState(false);
+
+  const selected = artists.find(a => String(a.id) === String(value));
+
+  async function select(artist) {
+    onChange(String(artist.id));
+    setInput("");
   }
+
+  async function createAndSelect() {
+    const name = input.trim();
+    if (!name || creating) return;
+    setCreating(true);
+    try {
+      const artist = await api.createArtist({ name, country: null, instagram: null, website: null, bio: null });
+      await onArtistsChanged();
+      onChange(String(artist.id));
+      setInput("");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  if (value && !selected) {
+    return <span style={{ fontSize: "13px", color: "var(--text-muted)" }}>Loading…</span>;
+  }
+
+  if (selected) {
+    return (
+      <span style={comboChip}>
+        {selected.name}
+        <button type="button" onClick={() => onChange("")} style={comboChipX}>✕</button>
+      </span>
+    );
+  }
+
+  const filtered = artists.filter(a => a.name.toLowerCase().includes(input.toLowerCase()));
+  const showCreate = input.trim() && !artists.some(a => a.name.toLowerCase() === input.trim().toLowerCase());
+
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem" }}>
-      {LANGUAGES.map(lang => (
-        <button
-          key={lang}
-          type="button"
-          onClick={() => toggle(lang)}
-          style={{
-            padding: "2px 8px", borderRadius: "10px", border: "1px solid",
-            cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "12px",
-            background: value.includes(lang) ? "var(--accent-dim)" : "var(--bg-highlight)",
-            color: value.includes(lang) ? "var(--text-bright)" : "var(--text-muted)",
-            borderColor: value.includes(lang) ? "var(--accent)" : "var(--border)",
+    <div style={{ position: "relative" }}>
+      <input
+        value={input}
+        onChange={e => setInput(e.target.value)}
+        onKeyDown={e => {
+          if (e.key !== "Enter") return;
+          e.preventDefault();
+          if (filtered.length === 1 && !showCreate) select(filtered[0]);
+          else if (showCreate) createAndSelect();
+        }}
+        onBlur={() => setTimeout(() => setInput(""), 150)}
+        placeholder="Search or create artist…"
+        style={inputStyle}
+      />
+      {input && (filtered.length > 0 || showCreate) && (
+        <div style={comboDropdown}>
+          {filtered.slice(0, 8).map(a => (
+            <div key={a.id} onMouseDown={e => { e.preventDefault(); select(a); }} style={comboOption}>
+              {a.name}
+            </div>
+          ))}
+          {showCreate && (
+            <div onMouseDown={e => { e.preventDefault(); createAndSelect(); }} style={{ ...comboOption, color: "var(--accent)" }}>
+              {creating ? "Creating…" : `Create "${input.trim()}"`}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LanguageCombobox({ value, onChange }) {
+  const [input, setInput] = useState("");
+
+  const filtered = LANGUAGES.filter(l =>
+    l.toLowerCase().includes(input.toLowerCase()) && !value.includes(l)
+  );
+  const trimmed = input.trim();
+  const showAdd = trimmed && !value.some(v => v.toLowerCase() === trimmed.toLowerCase());
+
+  function add(lang) {
+    if (!value.includes(lang)) onChange([...value, lang]);
+    setInput("");
+  }
+
+  function addCustom() {
+    if (!trimmed || value.some(v => v.toLowerCase() === trimmed.toLowerCase())) return;
+    onChange([...value, trimmed]);
+    setInput("");
+  }
+
+  function remove(lang) {
+    onChange(value.filter(l => l !== lang));
+  }
+
+  return (
+    <div>
+      {value.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: "0.5rem" }}>
+          {value.map(lang => (
+            <span key={lang} style={comboChip}>
+              {lang}
+              <button type="button" onClick={() => remove(lang)} style={comboChipX}>✕</button>
+            </span>
+          ))}
+        </div>
+      )}
+      <div style={{ position: "relative" }}>
+        <input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => {
+            if (e.key !== "Enter") return;
+            e.preventDefault();
+            if (filtered.length === 1) add(filtered[0]);
+            else if (showAdd) addCustom();
           }}
-        >
-          {lang}
-        </button>
-      ))}
+          onBlur={() => setTimeout(() => setInput(""), 150)}
+          placeholder="Add language…"
+          style={inputStyle}
+        />
+        {input && (filtered.length > 0 || showAdd) && (
+          <div style={comboDropdown}>
+            {filtered.slice(0, 7).map(lang => (
+              <div key={lang} onMouseDown={e => { e.preventDefault(); add(lang); }} style={comboOption}>
+                {lang}
+              </div>
+            ))}
+            {showAdd && !filtered.some(l => l.toLowerCase() === trimmed.toLowerCase()) && (
+              <div onMouseDown={e => { e.preventDefault(); addCustom(); }} style={{ ...comboOption, color: "var(--accent)" }}>
+                Add "{trimmed}"
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -417,3 +544,7 @@ const h1 = { margin: 0, fontSize: "22px", fontWeight: 600, color: "var(--text-br
 const backBtn = { background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "14px", padding: 0 };
 const primaryBtn = { background: "var(--accent-dim)", color: "var(--text-bright)", border: "none", borderRadius: "4px", padding: "0.6rem 1.5rem", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "14px" };
 const ghostBtn = { background: "none", color: "var(--text-muted)", border: "1px solid var(--border)", borderRadius: "4px", padding: "0.3rem 0.6rem", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "13px" };
+const comboChip = { display: "inline-flex", alignItems: "center", gap: "0.25rem", background: "var(--bg-highlight)", color: "var(--text)", borderRadius: "4px", padding: "0.2rem 0.5rem", fontSize: "13px" };
+const comboChipX = { background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: 0, fontSize: "12px" };
+const comboDropdown = { position: "absolute", top: "100%", left: 0, right: 0, background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "4px", zIndex: 20, marginTop: "2px", maxHeight: "200px", overflowY: "auto" };
+const comboOption = { padding: "0.5rem 0.75rem", cursor: "pointer", fontSize: "14px", color: "var(--text)" };
