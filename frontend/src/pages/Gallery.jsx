@@ -157,7 +157,7 @@ export default function Gallery() {
             value={q}
             onChange={e => setQ(e.target.value)}
             placeholder="Search…"
-            style={searchInput}
+            style={{ ...searchInput, marginLeft: "auto" }}
           />
         )}
         {(!isMobile || !searchOpen) && <ThemeToggle />}
