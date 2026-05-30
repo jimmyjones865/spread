@@ -8,6 +8,7 @@ export default function CurationPanel({ bookId, onImagesAdded, onAddToBook }) {
   const [scrapeError, setScrapeError] = useState(null);
   const [imageSizes, setImageSizes] = useState({});
   const [imageReachable, setImageReachable] = useState({});
+  const [imageDims, setImageDims] = useState({});
 
   const [coverUrl, setCoverUrl] = useState(null);
   const [spreadUrls, setSpreadUrls] = useState([]);
@@ -40,6 +41,7 @@ export default function CurationPanel({ bookId, onImagesAdded, onAddToBook }) {
       api.getBookScrapes(bookId).then(setHistory).catch(() => {});
       setImageSizes({});
       setImageReachable({});
+      setImageDims({});
       if (result.image_urls.length > 0) {
         api.imageMeta(result.image_urls).then(({ sizes }) => {
           const sizeMap = {};
@@ -86,12 +88,15 @@ export default function CurationPanel({ bookId, onImagesAdded, onAddToBook }) {
   }
 
   const MIN_IMAGE_BYTES = 20 * 1024;
+  const MIN_IMAGE_PX = 400;
   const sizesLoaded = Object.keys(imageSizes).length > 0;
   const visibleImageUrls = !scrape ? [] : !sizesLoaded ? scrape.image_urls : scrape.image_urls.filter(imgUrl => {
-    if (imageReachable[imgUrl] === false) return false; // dead URL
+    if (imageReachable[imgUrl] === false) return false;
     const size = imageSizes[imgUrl];
-    if (size == null) return true; // reachable but no Content-Length → show
-    return size >= MIN_IMAGE_BYTES;
+    if (size != null && size < MIN_IMAGE_BYTES) return false;
+    const d = imageDims[imgUrl];
+    if (d && Math.max(d.w, d.h) < MIN_IMAGE_PX) return false;
+    return true;
   });
   const hiddenCount = scrape && sizesLoaded ? scrape.image_urls.length - visibleImageUrls.length : 0;
 
@@ -191,7 +196,7 @@ export default function CurationPanel({ bookId, onImagesAdded, onAddToBook }) {
             <span style={sectionLabel}>Images</span>
             {hiddenCount > 0 && (
               <span style={{ fontSize: "11px", color: "var(--text-muted)", opacity: 0.7 }}>
-                {hiddenCount} hidden (&lt; 20 KB)
+                {hiddenCount} hidden (too small)
               </span>
             )}
           </div>
@@ -207,8 +212,10 @@ export default function CurationPanel({ bookId, onImagesAdded, onAddToBook }) {
                   isSpread={isSpread}
                   spreadIdx={spreadUrls.indexOf(imgUrl)}
                   sizeBytes={imageSizes[imgUrl] ?? null}
+                  dims={imageDims[imgUrl] ?? null}
                   onCover={() => toggleCover(imgUrl)}
                   onSpread={() => toggleSpread(imgUrl)}
+                  onDimsLoaded={(w, h) => setImageDims(prev => ({ ...prev, [imgUrl]: { w, h } }))}
                 />
               );
             })}
@@ -282,9 +289,8 @@ function fmtSize(bytes) {
   return `${Math.round(bytes / 1024)} KB`;
 }
 
-function ImageCard({ url, isCover, isSpread, spreadIdx, sizeBytes, onCover, onSpread }) {
+function ImageCard({ url, isCover, isSpread, spreadIdx, sizeBytes, dims, onCover, onSpread, onDimsLoaded }) {
   const [broken, setBroken] = useState(false);
-  const [dims, setDims] = useState(null);
   const highlight = isCover ? "#4c566a" : isSpread ? "#3b4252" : "transparent";
   const borderColor = isCover ? "var(--accent)" : isSpread ? "#5e81ac" : "var(--border)";
 
@@ -298,7 +304,7 @@ function ImageCard({ url, isCover, isSpread, spreadIdx, sizeBytes, onCover, onSp
             src={url}
             alt=""
             onError={() => setBroken(true)}
-            onLoad={e => setDims({ w: e.target.naturalWidth, h: e.target.naturalHeight })}
+            onLoad={e => onDimsLoaded(e.target.naturalWidth, e.target.naturalHeight)}
             style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
           />
         )}
