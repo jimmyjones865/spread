@@ -164,7 +164,7 @@ export default function Gallery() {
         <button
           onClick={() => setPanelOpen(true)}
           title="Filters"
-          style={{ ...filterBtn, ...(activeFilterCount > 0 ? { color: "var(--accent)", borderColor: "var(--accent)" } : {}) }}
+          style={{ ...filterBtn, ...(activeFilterCount > 0 ? { color: "var(--accent)" } : {}) }}
         >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ display: "block" }}>
               <line x1="1" y1="4" x2="15" y2="4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
@@ -370,18 +370,18 @@ function BookCard({ book, onClick }) {
 }
 
 const iconBtn = {
-  background: "none", border: "1px solid var(--border)", borderRadius: "6px",
+  background: "none", border: "none", borderRadius: "6px",
   padding: "0.45rem 0.55rem", color: "var(--text-muted)", cursor: "pointer",
   display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
 };
 const searchInput = {
   padding: "0.45rem 0.65rem", background: "var(--bg-elevated)",
-  border: "1px solid var(--border)", borderRadius: "6px",
+  border: "1px solid var(--border)", borderRadius: "6px", lineHeight: "1",
   color: "var(--text)", fontFamily: "var(--font-body)", fontSize: "14px", width: "200px",
 };
 const filterBtn = {
   padding: "0.45rem 0.55rem", background: "none",
-  border: "1px solid var(--border)", borderRadius: "6px",
+  border: "none", borderRadius: "6px",
   color: "var(--text-muted)", fontFamily: "var(--font-body)", fontSize: "13px",
   cursor: "pointer", position: "relative", lineHeight: 0,
 };

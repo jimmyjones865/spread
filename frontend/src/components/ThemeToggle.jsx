@@ -16,7 +16,7 @@ export default function ThemeToggle() {
       onClick={() => setTheme(t => t === "dark" ? "light" : "dark")}
       style={{
         background: "none",
-        border: "1px solid var(--border)",
+        border: "none",
         borderRadius: "6px",
         padding: "0.45rem 0.55rem",
         cursor: "pointer",

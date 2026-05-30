@@ -18,8 +18,14 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column('books', sa.Column('edition_year', sa.Integer(), nullable=True))
+    inspector = sa.inspect(op.get_bind())
+    existing = {col['name'] for col in inspector.get_columns('books')}
+    if 'edition_year' not in existing:
+        op.add_column('books', sa.Column('edition_year', sa.Integer(), nullable=True))
 
 
 def downgrade() -> None:
-    op.drop_column('books', 'edition_year')
+    inspector = sa.inspect(op.get_bind())
+    existing = {col['name'] for col in inspector.get_columns('books')}
+    if 'edition_year' in existing:
+        op.drop_column('books', 'edition_year')
