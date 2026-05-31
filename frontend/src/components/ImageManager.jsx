@@ -26,6 +26,8 @@ function fmtSize(bytes) {
 
 export default function ImageManager({ bookId, images, onChange }) {
   const [uploading, setUploading] = useState(false);
+  const [rotating, setRotating] = useState(null);
+  const [versions, setVersions] = useState({});
   const [error, setError] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [activeId, setActiveId] = useState(null);
@@ -64,6 +66,20 @@ export default function ImageManager({ bookId, images, onChange }) {
     const newOrder = arrayMove(sorted, oldIndex, newIndex).map(i => i.id);
     await api.reorderImages(bookId, newOrder);
     await onChange();
+  }
+
+  async function handleRotate(imgId) {
+    setRotating(imgId);
+    setError(null);
+    try {
+      await api.rotateImage(bookId, imgId);
+      setVersions(v => ({ ...v, [imgId]: Date.now() }));
+      await onChange();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setRotating(null);
+    }
   }
 
   async function confirmDelete() {
@@ -123,6 +139,9 @@ export default function ImageManager({ bookId, images, onChange }) {
                   bookId={bookId}
                   isCover={idx === 0}
                   onDelete={() => setDeleteTarget(img.id)}
+                  onRotate={() => handleRotate(img.id)}
+                  isRotating={rotating === img.id}
+                  version={versions[img.id]}
                 />
               ))}
             </div>
@@ -152,7 +171,7 @@ export default function ImageManager({ bookId, images, onChange }) {
   );
 }
 
-function SortableImageCard({ img, bookId, isCover, onDelete }) {
+function SortableImageCard({ img, bookId, isCover, onDelete, onRotate, isRotating, version }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: img.id });
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -161,13 +180,13 @@ function SortableImageCard({ img, bookId, isCover, onDelete }) {
   };
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <ImageCard img={img} bookId={bookId} isCover={isCover} onDelete={onDelete} />
+      <ImageCard img={img} bookId={bookId} isCover={isCover} onDelete={onDelete} onRotate={onRotate} isRotating={isRotating} version={version} />
     </div>
   );
 }
 
-function ImageCard({ img, bookId, isCover, onDelete, isDragOverlay }) {
-  const url = `/images/${bookId}/${img.filename}`;
+function ImageCard({ img, bookId, isCover, onDelete, onRotate, isRotating, version, isDragOverlay }) {
+  const url = `/images/${bookId}/${img.filename}${version ? `?v=${version}` : ""}`;
   return (
     <div style={{
       position: "relative",
@@ -180,7 +199,7 @@ function ImageCard({ img, bookId, isCover, onDelete, isDragOverlay }) {
       <img
         src={url}
         alt=""
-        style={{ width: "100%", aspectRatio: "1", objectFit: "cover", display: "block" }}
+        style={{ width: "100%", aspectRatio: "1", objectFit: "cover", display: "block", opacity: isRotating ? 0.5 : 1 }}
         draggable={false}
       />
       <button
@@ -194,6 +213,20 @@ function ImageCard({ img, bookId, isCover, onDelete, isDragOverlay }) {
           lineHeight: 1,
         }}
       >✕</button>
+      {!isDragOverlay && onRotate && (
+        <button
+          onPointerDown={e => e.stopPropagation()}
+          onClick={onRotate}
+          disabled={isRotating}
+          style={{
+            position: "absolute", top: "4px", right: "30px",
+            background: "rgba(0,0,0,0.55)", border: "none", borderRadius: "50%",
+            color: "#fff", width: "22px", height: "22px", cursor: isRotating ? "default" : "pointer",
+            fontSize: "13px", display: "flex", alignItems: "center", justifyContent: "center",
+            lineHeight: 1,
+          }}
+        >↻</button>
+      )}
       {isCover && (
         <div style={{
           position: "absolute", top: "4px", left: "4px",

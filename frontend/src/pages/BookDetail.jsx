@@ -85,7 +85,7 @@ export default function BookDetail() {
   const imageList = book.images.map((img, idx) => (
     <img
       key={img.id}
-      src={img.url}
+      src={img.web_url || img.url}
       alt=""
       onClick={() => setLightboxIdx(idx)}
       style={{ width: "100%", height: "auto", display: "block", cursor: "zoom-in" }}
@@ -218,7 +218,7 @@ function Lightbox({ images, idx, onClose, onPrev, onNext }) {
       {/* Image */}
       <img
         ref={imgRef}
-        src={images[idx].url}
+        src={images[idx].zoom_url || images[idx].url}
         alt=""
         onClick={e => {
           e.stopPropagation();

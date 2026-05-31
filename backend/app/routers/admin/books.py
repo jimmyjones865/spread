@@ -20,7 +20,7 @@ from app.schemas import (
     ReorderBody,
 )
 from app.utils.slugs import unique_slug
-from app.utils.images import sanitize_image
+from app.utils.images import sanitize_image, generate_variants
 from app.utils.ssrf import is_safe_url
 
 CDN_PARAMS = {
@@ -170,6 +170,7 @@ async def upload_image(
     book_dir.mkdir(parents=True, exist_ok=True)
     filename = f"{uuid4().hex}.jpg"
     (book_dir / filename).write_bytes(clean)
+    generate_variants(clean, book_dir, filename[:-4])
 
     pil = PILImage.open(io.BytesIO(clean))
     width, height = pil.size
@@ -188,6 +189,33 @@ async def upload_image(
     db.commit()
     db.refresh(record)
     return record
+
+
+@router.post("/{book_id}/images/{img_id}/rotate", response_model=BookImageOut)
+def rotate_image(book_id: int, img_id: int, db: Session = Depends(get_db)):
+    img = db.query(BookImage).filter(BookImage.id == img_id, BookImage.book_id == book_id).first()
+    if not img:
+        raise HTTPException(404)
+
+    path = IMAGE_DIR / str(book_id) / img.filename
+    if not path.exists():
+        raise HTTPException(404, detail="Image file not found")
+
+    pil = PILImage.open(io.BytesIO(path.read_bytes()))
+    rotated = pil.rotate(-90, expand=True)
+
+    out = io.BytesIO()
+    rotated.save(out, format="JPEG", quality=92)
+    clean = out.getvalue()
+
+    path.write_bytes(clean)
+    generate_variants(clean, path.parent, img.filename[:-4])
+
+    img.width, img.height = rotated.size
+    img.file_size = len(clean)
+    db.commit()
+    db.refresh(img)
+    return img
 
 
 @router.patch("/{book_id}/images/{img_id}", response_model=BookImageOut)
@@ -218,6 +246,11 @@ def delete_image(book_id: int, img_id: int, db: Session = Depends(get_db)):
     path = IMAGE_DIR / str(book_id) / img.filename
     if path.exists():
         path.unlink()
+    stem = img.filename[:-4]
+    for suffix in ("_thumb", "_web", "_zoom"):
+        variant = IMAGE_DIR / str(book_id) / f"{stem}{suffix}.jpg"
+        if variant.exists():
+            variant.unlink()
     db.delete(img)
     db.flush()
     if was_cover:
@@ -312,6 +345,7 @@ async def download_image_from_url(
     book_dir.mkdir(parents=True, exist_ok=True)
     filename = f"{uuid4().hex}.jpg"
     (book_dir / filename).write_bytes(clean)
+    generate_variants(clean, book_dir, filename[:-4])
 
     pil = PILImage.open(io.BytesIO(clean))
     width, height = pil.size

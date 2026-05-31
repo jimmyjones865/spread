@@ -53,6 +53,7 @@ export default {
   setImageRole:   (bookId, imgId, role) => patch(`/api/admin/books/${bookId}/images/${imgId}?role=${role}`),
   deleteImage:    (bookId, imgId)       => del(`/api/admin/books/${bookId}/images/${imgId}`),
   reorderImages:  (bookId, ids)         => post(`/api/admin/books/${bookId}/images/reorder`, { ids }),
+  rotateImage:    (bookId, imgId)       => post(`/api/admin/books/${bookId}/images/${imgId}/rotate`),
 
   // Links
   addLink:    (bookId, data)         => post(`/api/admin/books/${bookId}/links`, data),

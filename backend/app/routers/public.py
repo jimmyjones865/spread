@@ -22,9 +22,9 @@ def _is_admin(request: Request) -> bool:
 def _cover_url(book: Book) -> str | None:
     for img in book.images:
         if img.role == ImageRole.cover:
-            return f"/images/{book.id}/{img.filename}"
+            return f"/images/{book.id}/{img.filename[:-4]}_thumb.jpg"
     if book.images:
-        return f"/images/{book.id}/{book.images[0].filename}"
+        return f"/images/{book.id}/{book.images[0].filename[:-4]}_thumb.jpg"
     return None
 
 
@@ -164,6 +164,9 @@ def get_book(slug: str, request: Request, db: Session = Depends(get_db)):
                 "width": img.width,
                 "height": img.height,
                 "url": f"/images/{book.id}/{img.filename}",
+                "thumb_url": f"/images/{book.id}/{img.filename[:-4]}_thumb.jpg",
+                "web_url": f"/images/{book.id}/{img.filename[:-4]}_web.jpg",
+                "zoom_url": f"/images/{book.id}/{img.filename[:-4]}_zoom.jpg",
             }
             for img in images
         ],
