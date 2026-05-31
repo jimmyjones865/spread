@@ -89,7 +89,7 @@ def list_books(db: Session = Depends(get_db)):
             "hidden": book.hidden,
             "year": book.year,
             "artist": {"id": book.artist.id, "name": book.artist.name},
-            "cover": {"id": cover.id, "filename": cover.filename} if cover else None,
+            "cover": {"id": cover.id, "filename": cover.filename, "thumb_url": f"/images/{book.id}/{cover.filename[:-4]}_thumb.webp"} if cover else None,
         })
     return result
 

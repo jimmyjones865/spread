@@ -65,7 +65,7 @@ export default function AdminBooks() {
                 >
                   {book.cover ? (
                     <img
-                      src={`/images/${book.id}/${book.cover.filename}`}
+                      src={book.cover.thumb_url}
                       alt=""
                       style={{ width: 120, height: 160, objectFit: "cover", borderRadius: "3px", display: "block" }}
                     />
@@ -88,7 +88,7 @@ export default function AdminBooks() {
                   <td style={{ padding: "0.6rem 0.5rem", width: 52 }}>
                     {book.cover ? (
                       <img
-                        src={`/images/${book.id}/${book.cover.filename}`}
+                        src={book.cover.thumb_url}
                         alt=""
                         style={{ width: 40, height: 40, objectFit: "cover", borderRadius: "2px", display: "block" }}
                       />
