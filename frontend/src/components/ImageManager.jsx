@@ -186,7 +186,9 @@ function SortableImageCard({ img, bookId, isCover, onDelete, onRotate, isRotatin
 }
 
 function ImageCard({ img, bookId, isCover, onDelete, onRotate, isRotating, version, isDragOverlay }) {
-  const url = `/images/${bookId}/${img.filename}${version ? `?v=${version}` : ""}`;
+  const stem = img.filename.replace(/\.jpg$/, "");
+  const variant = `${stem}_thumb.webp`;
+  const url = `/images/${bookId}/${variant}${version ? `?v=${version}` : ""}`;
   return (
     <div style={{
       position: "relative",
