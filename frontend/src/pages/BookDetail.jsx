@@ -11,7 +11,7 @@ function LazyImage({ src, eager, root, aspectRatio, style, onClick }) {
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) { setActiveSrc(src); observer.disconnect(); } },
-      { root: root?.current ?? null, rootMargin: "600px" },
+      { root: root?.current ?? null, rootMargin: "900px" },
     );
     observer.observe(el);
     return () => observer.disconnect();
