@@ -136,7 +136,7 @@ export default function BookDetail() {
     return (
       <div style={{ padding: "4rem 3rem", color: "var(--text-muted)" }}>
         Book not found.{" "}
-        <Link to="/" style={{ color: "var(--accent)" }}>← Back to gallery</Link>
+        <a href="/" onClick={e => { e.preventDefault(); navigate("/"); }} style={{ color: "var(--accent)" }}>← Back to gallery</a>
       </div>
     );
   }
@@ -189,7 +189,7 @@ export default function BookDetail() {
         <div>
           <div style={{ padding: "1.5rem 1.5rem 2rem" }}>
             <div style={{ marginBottom: "0" }}>
-              <Link to="/" style={backLink}>← Spread</Link>
+              <a href="/" onClick={e => { e.preventDefault(); navigate("/"); }} style={backLink}>← Spread</a>
             </div>
             {metadata}
           </div>
@@ -201,7 +201,7 @@ export default function BookDetail() {
           <div ref={leftRef} className="no-scrollbar" style={{ width: "28%", minWidth: "240px", maxWidth: "360px", height: "100vh", overflowY: "auto", borderRight: "1px solid var(--border)", flexShrink: 0 }}>
             <div style={{ padding: "2rem 2rem 3rem" }}>
               <div style={{ marginBottom: "0" }}>
-                <Link to="/" style={backLink}>← Spread</Link>
+                <a href="/" onClick={e => { e.preventDefault(); navigate("/"); }} style={backLink}>← Spread</a>
               </div>
               {metadata}
             </div>
