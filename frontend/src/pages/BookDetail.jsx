@@ -1,6 +1,35 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useLocation, useNavigate, Link } from "react-router-dom";
 
+function LazyImage({ src, eager, root, aspectRatio, style, onClick }) {
+  const [activeSrc, setActiveSrc] = useState(eager ? src : null);
+  const ref = useRef();
+
+  useEffect(() => {
+    if (eager || !src) return;
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setActiveSrc(src); observer.disconnect(); } },
+      { root: root?.current ?? null, rootMargin: "200px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [src, eager, root]);
+
+  if (!activeSrc) {
+    return (
+      <div
+        ref={ref}
+        onClick={onClick}
+        style={{ width: "100%", aspectRatio, background: "var(--bg-elevated)", cursor: style?.cursor }}
+      />
+    );
+  }
+
+  return <img src={activeSrc} alt="" onClick={onClick} style={{ ...style, aspectRatio }} />;
+}
+
 function useIsMobile() {
   const [mobile, setMobile] = useState(() => window.innerWidth < 768);
   useEffect(() => {
@@ -83,13 +112,14 @@ export default function BookDetail() {
 
   const metadata = <BookMeta book={book} />;
   const imageList = book.images.map((img, idx) => (
-    <img
+    <LazyImage
       key={img.id}
       src={img.web_url || img.url}
-      alt=""
+      eager={idx === 0}
+      root={isMobile ? null : rightRef}
+      aspectRatio={img.width && img.height ? `${img.width}/${img.height}` : undefined}
       onClick={() => setLightboxIdx(idx)}
       style={{ width: "100%", height: "auto", display: "block", cursor: "zoom-in" }}
-      loading="lazy"
     />
   ));
   const bookNav = (prevSlug || nextSlug) && (

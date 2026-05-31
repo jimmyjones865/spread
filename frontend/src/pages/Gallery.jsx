@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import PublicFooter from "../components/PublicFooter";
 import ThemeToggle from "../components/ThemeToggle";
 
+const _staticCache = { artists: null, tags: null, title: null };
+const _booksCache = {};
+
 function useIsMobile() {
   const [mobile, setMobile] = useState(() => window.innerWidth < 768);
   useEffect(() => {
@@ -55,16 +58,15 @@ export default function Gallery() {
   const debouncedQ = useDebounce(q, 300);
 
   useEffect(() => {
-    fetch("/api/artists", { credentials: "include" }).then(r => r.json()).then(setArtists).catch(() => {});
-    fetch("/api/tags", { credentials: "include" }).then(r => r.json()).then(setAllTags).catch(() => {});
-    fetch("/api/config").then(r => r.json()).then(d => setSiteTitle(d.title)).catch(() => {});
-    fetch("/api/books?sort=year&order=asc", { credentials: "include" })
-      .then(r => r.json())
-      .then(data => {
-        const years = [...new Set(data.map(b => b.year).filter(Boolean))].sort((a, b) => b - a);
-        setAvailableYears(years);
-      })
-      .catch(() => {});
+    if (_staticCache.artists) {
+      setArtists(_staticCache.artists);
+      setAllTags(_staticCache.tags);
+      setSiteTitle(_staticCache.title);
+    } else {
+      fetch("/api/artists", { credentials: "include" }).then(r => r.json()).then(d => { _staticCache.artists = d; setArtists(d); }).catch(() => {});
+      fetch("/api/tags", { credentials: "include" }).then(r => r.json()).then(d => { _staticCache.tags = d; setAllTags(d); }).catch(() => {});
+      fetch("/api/config").then(r => r.json()).then(d => { _staticCache.title = d.title; setSiteTitle(d.title); }).catch(() => {});
+    }
   }, []);
 
   useEffect(() => {
@@ -80,21 +82,34 @@ export default function Gallery() {
     if (numbered) params.set("numbered", "true");
     params.set("sort", sort);
     params.set("order", order);
+    const key = params.toString();
+
+    function apply(data, years) {
+      setBooks(data);
+      setAvailableYears(years);
+      setLoading(false);
+      if (!scrollRestored.current) {
+        scrollRestored.current = true;
+        const y = sessionStorage.getItem("gallery_scroll");
+        if (y) {
+          sessionStorage.removeItem("gallery_scroll");
+          requestAnimationFrame(() => window.scrollTo(0, parseInt(y)));
+        }
+      }
+    }
+
+    if (_booksCache[key]) {
+      apply(_booksCache[key].data, _booksCache[key].years);
+      return;
+    }
 
     setLoading(true);
     fetch(`/api/books?${params}`, { credentials: "include" })
       .then(r => r.json())
       .then(data => {
-        setBooks(data);
-        setLoading(false);
-        if (!scrollRestored.current) {
-          scrollRestored.current = true;
-          const y = sessionStorage.getItem("gallery_scroll");
-          if (y) {
-            sessionStorage.removeItem("gallery_scroll");
-            requestAnimationFrame(() => window.scrollTo(0, parseInt(y)));
-          }
-        }
+        const years = [...new Set(data.map(b => b.year).filter(Boolean))].sort((a, b) => b - a);
+        _booksCache[key] = { data, years };
+        apply(data, years);
       })
       .catch(() => setLoading(false));
   }, [debouncedQ, artistId, yearFrom, yearTo, language, activeTags, status, signed, numbered, sort, order]);
@@ -328,8 +343,11 @@ function FilterSection({ label, children }) {
 }
 
 function BookCard({ book, onClick }) {
+  function preload() {
+    if (book.cover_url) new Image().src = book.cover_url.replace("_thumb.jpg", "_web.jpg");
+  }
   return (
-    <div onClick={onClick} style={{ cursor: "pointer" }}>
+    <div onClick={onClick} onMouseEnter={preload} style={{ cursor: "pointer" }}>
       <div style={{
         position: "relative", width: "100%", paddingBottom: "135%",
         background: "var(--bg-elevated)", borderRadius: "3px", overflow: "hidden",
