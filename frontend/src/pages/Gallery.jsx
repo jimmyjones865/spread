@@ -29,7 +29,7 @@ function useDebounce(value, delay) {
 export default function Gallery() {
   const navigate = useVTNavigate();
   const isMobile = useIsMobile();
-  const scrollRestored = useRef(false);
+  const pendingScroll = useRef(null);
 
   const [books, setBooks] = useState([]);
   const [artists, setArtists] = useState([]);
@@ -88,13 +88,10 @@ export default function Gallery() {
       setBooks(data);
       setAvailableYears(years);
       setLoading(false);
-      if (!scrollRestored.current) {
-        scrollRestored.current = true;
-        const y = sessionStorage.getItem("gallery_scroll");
-        if (y) {
-          sessionStorage.removeItem("gallery_scroll");
-          requestAnimationFrame(() => window.scrollTo(0, parseInt(y)));
-        }
+      const y = sessionStorage.getItem("gallery_scroll");
+      if (y) {
+        sessionStorage.removeItem("gallery_scroll");
+        pendingScroll.current = parseInt(y);
       }
     }
 
@@ -113,6 +110,14 @@ export default function Gallery() {
       })
       .catch(() => setLoading(false));
   }, [debouncedQ, artistId, yearFrom, yearTo, language, activeTags, status, signed, numbered, sort, order]);
+
+  useEffect(() => {
+    if (!loading && pendingScroll.current !== null) {
+      const y = pendingScroll.current;
+      pendingScroll.current = null;
+      requestAnimationFrame(() => window.scrollTo(0, y));
+    }
+  }, [books, loading]);
 
   function toggleTag(name) {
     setActiveTags(prev => {
