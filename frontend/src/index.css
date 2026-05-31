@@ -76,3 +76,12 @@ code, kbd, pre, .mono {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* Page transitions — crossfade on navigation */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.18s;
+    animation-timing-function: ease-out;
+  }
+}

@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useParams, useLocation, useNavigate, Link } from "react-router-dom";
+import { useParams, useLocation, Link } from "react-router-dom";
+import { bookCache, prefetchBook, getConfig } from "../prefetchCache";
+import useVTNavigate from "../hooks/useVTNavigate";
 
-function LazyImage({ src, eager, root, aspectRatio, style, onClick }) {
-  const [activeSrc, setActiveSrc] = useState(eager ? src : null);
+function LazyImage({ src, webpSrc, eager, root, aspectRatio, style, onClick, fetchPriority }) {
+  const [loaded, setLoaded] = useState(eager);
   const ref = useRef();
 
   useEffect(() => {
@@ -10,14 +12,14 @@ function LazyImage({ src, eager, root, aspectRatio, style, onClick }) {
     const el = ref.current;
     if (!el) return;
     const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setActiveSrc(src); observer.disconnect(); } },
+      ([entry]) => { if (entry.isIntersecting) { setLoaded(true); observer.disconnect(); } },
       { root: root?.current ?? null, rootMargin: "900px" },
     );
     observer.observe(el);
     return () => observer.disconnect();
   }, [src, eager, root]);
 
-  if (!activeSrc) {
+  if (!loaded) {
     return (
       <div
         ref={ref}
@@ -27,7 +29,24 @@ function LazyImage({ src, eager, root, aspectRatio, style, onClick }) {
     );
   }
 
-  return <img src={activeSrc} alt="" onClick={onClick} style={{ ...style, aspectRatio }} />;
+  const img = (
+    <img
+      src={src}
+      alt=""
+      onClick={onClick}
+      style={{ ...style, aspectRatio }}
+      decoding="async"
+      fetchPriority={fetchPriority}
+    />
+  );
+
+  if (!webpSrc) return img;
+  return (
+    <picture>
+      <source type="image/webp" srcSet={webpSrc} />
+      {img}
+    </picture>
+  );
 }
 
 function useIsMobile() {
@@ -43,7 +62,7 @@ function useIsMobile() {
 export default function BookDetail() {
   const { slug } = useParams();
   const location = useLocation();
-  const navigate = useNavigate();
+  const navigate = useVTNavigate();
   const [book, setBook] = useState(null);
   const [notFound, setNotFound] = useState(false);
   const [lightboxIdx, setLightboxIdx] = useState(null);
@@ -62,6 +81,12 @@ export default function BookDetail() {
     navigate(`/books/${targetSlug}`, { state: { slugs: bookSlugs } });
   }
 
+  // Proactively prefetch adjacent books as soon as slugs are known — no hover required
+  useEffect(() => {
+    if (prevSlug) prefetchBook(prevSlug);
+    if (nextSlug) prefetchBook(nextSlug);
+  }, [prevSlug, nextSlug]);
+
   useEffect(() => {
     window.scrollTo(0, 0);
     if (leftRef.current) leftRef.current.scrollTop = 0;
@@ -69,20 +94,23 @@ export default function BookDetail() {
   }, [slug]);
 
   useEffect(() => {
-    fetch(`/api/books/${slug}`, { credentials: "include" })
-      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(setBook)
-      .catch(() => setNotFound(true));
+    const cached = bookCache[slug];
+    if (cached) {
+      cached.then(data => { if (data) setBook(data); else setNotFound(true); });
+      return;
+    }
+    bookCache[slug] = fetch(`/api/books/${slug}`, { credentials: "include" })
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null);
+    bookCache[slug].then(data => { if (data) setBook(data); else setNotFound(true); });
   }, [slug]);
 
   useEffect(() => {
-    fetch("/api/config").then(r => r.json()).then(d => {
-      if (d.image_max_width) setImageMaxWidth(d.image_max_width);
-    }).catch(() => {});
+    getConfig().then(d => { if (d.image_max_width) setImageMaxWidth(d.image_max_width); });
   }, []);
 
-  // Keyboard navigation for lightbox
   const closeLightbox = useCallback(() => setLightboxIdx(null), []);
+
   useEffect(() => {
     if (lightboxIdx === null || !book) return;
     function onKey(e) {
@@ -93,6 +121,16 @@ export default function BookDetail() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [lightboxIdx, book, closeLightbox]);
+
+  // Preload adjacent zoom images while lightbox is open
+  useEffect(() => {
+    if (lightboxIdx === null || !book) return;
+    [lightboxIdx - 1, lightboxIdx + 1].forEach(i => {
+      if (i >= 0 && i < book.images.length) {
+        new Image().src = book.images[i].zoom_webp_url || book.images[i].zoom_url || book.images[i].url;
+      }
+    });
+  }, [lightboxIdx, book]);
 
   if (notFound) {
     return (
@@ -115,7 +153,9 @@ export default function BookDetail() {
     <LazyImage
       key={img.id}
       src={img.web_url || img.url}
+      webpSrc={img.web_webp_url}
       eager={idx === 0}
+      fetchPriority={idx === 0 ? "high" : undefined}
       root={isMobile ? null : rightRef}
       aspectRatio={img.width && img.height ? `${img.width}/${img.height}` : undefined}
       onClick={() => setLightboxIdx(idx)}
@@ -125,17 +165,16 @@ export default function BookDetail() {
   const bookNav = (prevSlug || nextSlug) && (
     <div style={{ display: "flex", justifyContent: "space-between", padding: "0.75rem 2rem" }}>
       {prevSlug
-        ? <button onClick={() => navigateBook(prevSlug)} style={navBtn}>← Prev</button>
+        ? <button onMouseEnter={() => prefetchBook(prevSlug)} onClick={() => navigateBook(prevSlug)} style={navBtn}>← Prev</button>
         : <span />}
       {nextSlug
-        ? <button onClick={() => navigateBook(nextSlug)} style={navBtn}>Next →</button>
+        ? <button onMouseEnter={() => prefetchBook(nextSlug)} onClick={() => navigateBook(nextSlug)} style={navBtn}>Next →</button>
         : <span />}
     </div>
   );
 
   return (
     <>
-      {/* Lightbox */}
       {lightboxIdx !== null && book.images.length > 0 && (
         <Lightbox
           images={book.images}
@@ -159,7 +198,6 @@ export default function BookDetail() {
         </div>
       ) : (
         <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-          {/* Left — metadata */}
           <div ref={leftRef} className="no-scrollbar" style={{ width: "28%", minWidth: "240px", maxWidth: "360px", height: "100vh", overflowY: "auto", borderRight: "1px solid var(--border)", flexShrink: 0 }}>
             <div style={{ padding: "2rem 2rem 3rem" }}>
               <div style={{ marginBottom: "0" }}>
@@ -168,8 +206,6 @@ export default function BookDetail() {
               {metadata}
             </div>
           </div>
-
-          {/* Right — images */}
           <div ref={rightRef} className="no-scrollbar" style={{ flex: 1, overflowY: "auto", height: "100vh", maxWidth: imgColWidth }}>
             {imageList}
             {bookNav}
@@ -187,10 +223,8 @@ function Lightbox({ images, idx, onClose, onPrev, onNext }) {
   const clickRatioRef = useRef(null);
   const multi = images.length > 1;
 
-  // Reset zoom when image changes
   useEffect(() => setZoomed(false), [idx]);
 
-  // After zooming in, scroll so the clicked spot stays centered
   useEffect(() => {
     if (!zoomed || !clickRatioRef.current || !containerRef.current || !imgRef.current) return;
     const { rx, ry } = clickRatioRef.current;
@@ -205,6 +239,28 @@ function Lightbox({ images, idx, onClose, onPrev, onNext }) {
     });
   }, [zoomed]);
 
+  const imgStyle = {
+    display: "block",
+    userSelect: "none",
+    cursor: zoomed ? "zoom-out" : "zoom-in",
+    ...(zoomed
+      ? { width: "auto", height: "auto", maxWidth: "none", maxHeight: "none", margin: "3.5rem auto 2rem" }
+      : { maxHeight: "92vh", maxWidth: "90vw", objectFit: "contain" }
+    ),
+  };
+
+  const onImgClick = e => {
+    e.stopPropagation();
+    if (!zoomed) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      clickRatioRef.current = {
+        rx: (e.clientX - rect.left) / rect.width,
+        ry: (e.clientY - rect.top) / rect.height,
+      };
+    }
+    setZoomed(z => !z);
+  };
+
   return (
     <div
       ref={containerRef}
@@ -218,7 +274,6 @@ function Lightbox({ images, idx, onClose, onPrev, onNext }) {
         overflow: zoomed ? "auto" : "hidden",
       }}
     >
-      {/* Top bar */}
       <div
         onClick={e => e.stopPropagation()}
         style={{ position: "fixed", top: 0, left: 0, right: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "0.9rem 1.25rem", pointerEvents: "none" }}
@@ -240,39 +295,19 @@ function Lightbox({ images, idx, onClose, onPrev, onNext }) {
         </div>
       </div>
 
-      {/* Prev */}
       {multi && (
         <button onClick={e => { e.stopPropagation(); onPrev(); }} style={arrowBtn("left")}>‹</button>
       )}
 
-      {/* Image */}
-      <img
-        ref={imgRef}
-        src={images[idx].zoom_url || images[idx].url}
-        alt=""
-        onClick={e => {
-          e.stopPropagation();
-          if (!zoomed) {
-            const rect = e.currentTarget.getBoundingClientRect();
-            clickRatioRef.current = {
-              rx: (e.clientX - rect.left) / rect.width,
-              ry: (e.clientY - rect.top) / rect.height,
-            };
-          }
-          setZoomed(z => !z);
-        }}
-        style={{
-          display: "block",
-          userSelect: "none",
-          cursor: zoomed ? "zoom-out" : "zoom-in",
-          ...(zoomed
-            ? { width: "auto", height: "auto", maxWidth: "none", maxHeight: "none", margin: "3.5rem auto 2rem" }
-            : { maxHeight: "92vh", maxWidth: "90vw", objectFit: "contain" }
-          ),
-        }}
-      />
+      {images[idx].zoom_webp_url ? (
+        <picture>
+          <source type="image/webp" srcSet={images[idx].zoom_webp_url} />
+          <img ref={imgRef} src={images[idx].zoom_url || images[idx].url} alt="" onClick={onImgClick} style={imgStyle} decoding="async" />
+        </picture>
+      ) : (
+        <img ref={imgRef} src={images[idx].zoom_url || images[idx].url} alt="" onClick={onImgClick} style={imgStyle} decoding="async" />
+      )}
 
-      {/* Next */}
       {multi && (
         <button onClick={e => { e.stopPropagation(); onNext(); }} style={arrowBtn("right")}>›</button>
       )}

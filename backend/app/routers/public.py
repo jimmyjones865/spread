@@ -29,6 +29,7 @@ def _cover_url(book: Book) -> str | None:
 
 
 def _book_list_item(book: Book, artist_name: str, artist_slug: str) -> dict:
+    cover_url = _cover_url(book)
     return {
         "slug": book.slug,
         "title": book.title,
@@ -40,7 +41,8 @@ def _book_list_item(book: Book, artist_name: str, artist_slug: str) -> dict:
         "language": book.language,
         "artist_name": artist_name,
         "artist_slug": artist_slug,
-        "cover_url": _cover_url(book),
+        "cover_url": cover_url,
+        "cover_webp_url": cover_url.replace("_thumb.jpg", "_thumb.webp") if cover_url else None,
         "tags": [t.name for t in book.tags],
     }
 
@@ -167,6 +169,8 @@ def get_book(slug: str, request: Request, db: Session = Depends(get_db)):
                 "thumb_url": f"/images/{book.id}/{img.filename[:-4]}_thumb.jpg",
                 "web_url": f"/images/{book.id}/{img.filename[:-4]}_web.jpg",
                 "zoom_url": f"/images/{book.id}/{img.filename[:-4]}_zoom.jpg",
+                "web_webp_url": f"/images/{book.id}/{img.filename[:-4]}_web.webp",
+                "zoom_webp_url": f"/images/{book.id}/{img.filename[:-4]}_zoom.webp",
             }
             for img in images
         ],

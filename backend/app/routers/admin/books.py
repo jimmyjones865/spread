@@ -248,9 +248,10 @@ def delete_image(book_id: int, img_id: int, db: Session = Depends(get_db)):
         path.unlink()
     stem = img.filename[:-4]
     for suffix in ("_thumb", "_web", "_zoom"):
-        variant = IMAGE_DIR / str(book_id) / f"{stem}{suffix}.jpg"
-        if variant.exists():
-            variant.unlink()
+        for ext in (".jpg", ".webp"):
+            variant = IMAGE_DIR / str(book_id) / f"{stem}{suffix}{ext}"
+            if variant.exists():
+                variant.unlink()
     db.delete(img)
     db.flush()
     if was_cover:

@@ -1,42 +1,44 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuth";
-import AdminLayout from "./admin/AdminLayout";
-import AdminBooks from "./admin/AdminBooks";
-import AdminBookForm from "./admin/AdminBookForm";
-import AdminArtists from "./admin/AdminArtists";
-import AdminArtistForm from "./admin/AdminArtistForm";
-import AdminTags from "./admin/AdminTags";
-import AdminPages from "./admin/AdminPages";
-import AdminFooter from "./admin/AdminFooter";
 import Gallery from "./pages/Gallery";
 import BookDetail from "./pages/BookDetail";
 import ArtistPage from "./pages/ArtistPage";
-import StaticPage from "./pages/StaticPage";
+
+const StaticPage   = lazy(() => import("./pages/StaticPage"));
+const AdminLayout  = lazy(() => import("./admin/AdminLayout"));
+const AdminBooks   = lazy(() => import("./admin/AdminBooks"));
+const AdminBookForm    = lazy(() => import("./admin/AdminBookForm"));
+const AdminArtists     = lazy(() => import("./admin/AdminArtists"));
+const AdminArtistForm  = lazy(() => import("./admin/AdminArtistForm"));
+const AdminTags    = lazy(() => import("./admin/AdminTags"));
+const AdminPages   = lazy(() => import("./admin/AdminPages"));
+const AdminFooter  = lazy(() => import("./admin/AdminFooter"));
 
 export default function App() {
   return (
     <AuthProvider>
       <Routes>
-        {/* Public */}
+        {/* Public — eager */}
         <Route path="/" element={<Gallery />} />
         <Route path="/books/:slug" element={<BookDetail />} />
         <Route path="/artists/:slug" element={<ArtistPage />} />
 
-        {/* Admin */}
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<AdminBooks />} />
-          <Route path="books/new" element={<AdminBookForm />} />
-          <Route path="books/:id" element={<AdminBookForm />} />
-          <Route path="artists" element={<AdminArtists />} />
-          <Route path="artists/new" element={<AdminArtistForm />} />
-          <Route path="artists/:id" element={<AdminArtistForm />} />
-          <Route path="tags" element={<AdminTags />} />
-          <Route path="pages" element={<AdminPages />} />
-          <Route path="footer" element={<AdminFooter />} />
+        {/* Admin — lazy chunk, only loaded when /admin/* is visited */}
+        <Route path="/admin" element={<Suspense fallback={null}><AdminLayout /></Suspense>}>
+          <Route index element={<Suspense fallback={null}><AdminBooks /></Suspense>} />
+          <Route path="books/new" element={<Suspense fallback={null}><AdminBookForm /></Suspense>} />
+          <Route path="books/:id" element={<Suspense fallback={null}><AdminBookForm /></Suspense>} />
+          <Route path="artists" element={<Suspense fallback={null}><AdminArtists /></Suspense>} />
+          <Route path="artists/new" element={<Suspense fallback={null}><AdminArtistForm /></Suspense>} />
+          <Route path="artists/:id" element={<Suspense fallback={null}><AdminArtistForm /></Suspense>} />
+          <Route path="tags" element={<Suspense fallback={null}><AdminTags /></Suspense>} />
+          <Route path="pages" element={<Suspense fallback={null}><AdminPages /></Suspense>} />
+          <Route path="footer" element={<Suspense fallback={null}><AdminFooter /></Suspense>} />
         </Route>
 
-        {/* Static pages — catch-all after all specific routes */}
-        <Route path="/:slug" element={<StaticPage />} />
+        {/* Static pages — lazy, rarely visited */}
+        <Route path="/:slug" element={<Suspense fallback={null}><StaticPage /></Suspense>} />
       </Routes>
     </AuthProvider>
   );

@@ -56,6 +56,12 @@ async def security_headers(request: Request, call_next):
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     response.headers["Content-Security-Policy"] = _CSP
+    path = request.url.path
+    if path.startswith("/images/"):
+        response.headers["Cache-Control"] = "public, max-age=86400"
+    elif path.startswith("/assets/"):
+        # Vite content-hashes these filenames — safe to cache indefinitely
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
     return response
 
 COOKIE_SECURE = os.getenv("COOKIE_SECURE", "true").lower() != "false"

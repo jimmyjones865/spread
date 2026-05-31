@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
 import PublicFooter from "../components/PublicFooter";
 import ThemeToggle from "../components/ThemeToggle";
+import { prefetchBook, getConfig } from "../prefetchCache";
+import useVTNavigate from "../hooks/useVTNavigate";
 
-const _staticCache = { artists: null, tags: null, title: null };
+const _staticCache = { artists: null, tags: null };
 const _booksCache = {};
 
 function useIsMobile() {
@@ -26,7 +27,7 @@ function useDebounce(value, delay) {
 }
 
 export default function Gallery() {
-  const navigate = useNavigate();
+  const navigate = useVTNavigate();
   const isMobile = useIsMobile();
   const scrollRestored = useRef(false);
 
@@ -61,12 +62,11 @@ export default function Gallery() {
     if (_staticCache.artists) {
       setArtists(_staticCache.artists);
       setAllTags(_staticCache.tags);
-      setSiteTitle(_staticCache.title);
     } else {
       fetch("/api/artists", { credentials: "include" }).then(r => r.json()).then(d => { _staticCache.artists = d; setArtists(d); }).catch(() => {});
       fetch("/api/tags", { credentials: "include" }).then(r => r.json()).then(d => { _staticCache.tags = d; setAllTags(d); }).catch(() => {});
-      fetch("/api/config").then(r => r.json()).then(d => { _staticCache.title = d.title; setSiteTitle(d.title); }).catch(() => {});
     }
+    getConfig().then(d => { if (d.title) setSiteTitle(d.title); });
   }, []);
 
   useEffect(() => {
@@ -344,7 +344,10 @@ function FilterSection({ label, children }) {
 
 function BookCard({ book, onClick }) {
   function preload() {
-    if (book.cover_url) new Image().src = book.cover_url.replace("_thumb.jpg", "_web.jpg");
+    const webpUrl = book.cover_webp_url?.replace("_thumb.webp", "_web.webp");
+    if (webpUrl) new Image().src = webpUrl;
+    else if (book.cover_url) new Image().src = book.cover_url.replace("_thumb.jpg", "_web.jpg");
+    prefetchBook(book.slug);
   }
   return (
     <div onClick={onClick} onMouseEnter={preload} style={{ cursor: "pointer" }}>
@@ -354,12 +357,16 @@ function BookCard({ book, onClick }) {
         marginBottom: "0.5rem",
       }}>
         {book.cover_url ? (
-          <img
-            src={book.cover_url}
-            alt=""
-            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-            loading="lazy"
-          />
+          <picture style={{ position: "absolute", inset: 0, display: "block" }}>
+            {book.cover_webp_url && <source type="image/webp" srcSet={book.cover_webp_url} />}
+            <img
+              src={book.cover_url}
+              alt=""
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+              loading="lazy"
+              decoding="async"
+            />
+          </picture>
         ) : (
           <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <span style={{ fontSize: "20px", color: "var(--text-muted)", fontWeight: 700, letterSpacing: "0.05em" }}>

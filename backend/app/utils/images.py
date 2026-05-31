@@ -41,13 +41,16 @@ def generate_variants(clean_bytes: bytes, book_dir: Path, stem: str) -> None:
     img = Image.open(io.BytesIO(clean_bytes))
     orig_w, orig_h = img.size
     for suffix, target_w in VARIANTS.items():
-        dest = book_dir / f"{stem}_{suffix}.jpg"
         if orig_w <= target_w:
-            dest.write_bytes(clean_bytes)
+            (book_dir / f"{stem}_{suffix}.jpg").write_bytes(clean_bytes)
+            scaled = img
         else:
             ratio = target_w / orig_w
             new_h = round(orig_h * ratio)
-            resized = img.resize((target_w, new_h), Image.Resampling.LANCZOS)
+            scaled = img.resize((target_w, new_h), Image.Resampling.LANCZOS)
             out = io.BytesIO()
-            resized.save(out, format="JPEG", quality=85)
-            dest.write_bytes(out.getvalue())
+            scaled.save(out, format="JPEG", quality=85)
+            (book_dir / f"{stem}_{suffix}.jpg").write_bytes(out.getvalue())
+        out_webp = io.BytesIO()
+        scaled.save(out_webp, format="WEBP", quality=85)
+        (book_dir / f"{stem}_{suffix}.webp").write_bytes(out_webp.getvalue())
