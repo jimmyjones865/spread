@@ -122,15 +122,6 @@ export default function BookDetail() {
     return () => window.removeEventListener("keydown", onKey);
   }, [lightboxIdx, book, closeLightbox]);
 
-  // Preload adjacent zoom images while lightbox is open
-  useEffect(() => {
-    if (lightboxIdx === null || !book) return;
-    [lightboxIdx - 1, lightboxIdx + 1].forEach(i => {
-      if (i >= 0 && i < book.images.length) {
-        new Image().src = book.images[i].zoom_webp_url || book.images[i].zoom_url || book.images[i].url;
-      }
-    });
-  }, [lightboxIdx, book]);
 
   if (notFound) {
     return (
@@ -223,7 +214,19 @@ function Lightbox({ images, idx, onClose, onPrev, onNext }) {
   const clickRatioRef = useRef(null);
   const multi = images.length > 1;
 
-  useEffect(() => setZoomed(false), [idx]);
+  useEffect(() => {
+    setZoomed(false);
+    // Preload 1:1 target in background so the swap is instant
+    const cur = images[idx];
+    new Image().src = cur.zoom_webp_url || cur.zoom_url || cur.url;
+    // Preload neighbours at web size — they upgrade when navigated to
+    [idx - 1, idx + 1].forEach(i => {
+      if (i >= 0 && i < images.length) {
+        const adj = images[i];
+        new Image().src = adj.web_webp_url || adj.web_url || adj.url;
+      }
+    });
+  }, [idx, images]);
 
   useEffect(() => {
     if (!zoomed || !clickRatioRef.current || !containerRef.current || !imgRef.current) return;
@@ -299,14 +302,19 @@ function Lightbox({ images, idx, onClose, onPrev, onNext }) {
         <button onClick={e => { e.stopPropagation(); onPrev(); }} style={arrowBtn("left")}>‹</button>
       )}
 
-      {images[idx].zoom_webp_url ? (
-        <picture>
-          <source type="image/webp" srcSet={images[idx].zoom_webp_url} />
-          <img ref={imgRef} src={images[idx].zoom_url || images[idx].url} alt="" onClick={onImgClick} style={imgStyle} decoding="async" />
-        </picture>
-      ) : (
-        <img ref={imgRef} src={images[idx].zoom_url || images[idx].url} alt="" onClick={onImgClick} style={imgStyle} decoding="async" />
-      )}
+      {(() => {
+        const cur = images[idx];
+        const displayWebp = zoomed ? cur.zoom_webp_url : cur.web_webp_url;
+        const displaySrc = zoomed ? (cur.zoom_url || cur.url) : (cur.web_url || cur.url);
+        return displayWebp ? (
+          <picture>
+            <source type="image/webp" srcSet={displayWebp} />
+            <img ref={imgRef} src={displaySrc} alt="" onClick={onImgClick} style={imgStyle} decoding="async" />
+          </picture>
+        ) : (
+          <img ref={imgRef} src={displaySrc} alt="" onClick={onImgClick} style={imgStyle} decoding="async" />
+        );
+      })()}
 
       {multi && (
         <button onClick={e => { e.stopPropagation(); onNext(); }} style={arrowBtn("right")}>›</button>

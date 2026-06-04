@@ -60,8 +60,12 @@ async def security_headers(request: Request, call_next):
     if path.startswith("/images/"):
         response.headers["Cache-Control"] = "public, max-age=86400"
     elif path.startswith("/assets/"):
-        # Vite content-hashes these filenames — safe to cache indefinitely
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    elif path in ("/api/config", "/api/tags", "/api/footer", "/api/artists") or path.startswith("/api/pages/"):
+        response.headers["Cache-Control"] = "public, max-age=300, stale-while-revalidate=86400"
+    elif path.startswith("/api/books") or path.startswith("/api/artists/"):
+        # private: response varies by admin session (hidden books)
+        response.headers["Cache-Control"] = "private, max-age=30, stale-while-revalidate=86400"
     return response
 
 COOKIE_SECURE = os.getenv("COOKIE_SECURE", "true").lower() != "false"

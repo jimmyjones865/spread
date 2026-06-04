@@ -201,8 +201,8 @@ export default function Gallery() {
             gridTemplateColumns: `repeat(auto-fill, minmax(${cardWidth}px, 1fr))`,
             gap: "1.5rem",
           }}>
-            {books.map(book => (
-              <BookCard key={book.slug} book={book} onClick={() => {
+            {books.map((book, i) => (
+              <BookCard key={book.slug} book={book} priority={i < 2} onClick={() => {
                 sessionStorage.setItem("gallery_scroll", String(window.scrollY));
                 navigate(`/books/${book.slug}`, { state: { slugs: books.map(b => b.slug) } });
               }} />
@@ -347,7 +347,7 @@ function FilterSection({ label, children }) {
   );
 }
 
-function BookCard({ book, onClick }) {
+function BookCard({ book, onClick, priority = false }) {
   function preload() {
     const webpUrl = book.cover_webp_url?.replace("_thumb.webp", "_web.webp");
     if (webpUrl) new Image().src = webpUrl;
@@ -368,7 +368,8 @@ function BookCard({ book, onClick }) {
               src={book.cover_url}
               alt=""
               style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-              loading="lazy"
+              loading={priority ? "eager" : "lazy"}
+              fetchPriority={priority ? "high" : undefined}
               decoding="async"
             />
           </picture>
