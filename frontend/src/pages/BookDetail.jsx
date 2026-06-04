@@ -209,16 +209,28 @@ export default function BookDetail() {
 
 function Lightbox({ images, idx, onClose, onPrev, onNext }) {
   const [zoomed, setZoomed] = useState(false);
+  const [displayWebp, setDisplayWebp] = useState(null);
+  const [displaySrc, setDisplaySrc] = useState(null);
   const containerRef = useRef(null);
   const imgRef = useRef(null);
   const clickRatioRef = useRef(null);
+  const touchStartX = useRef(null);
+  const touchStartY = useRef(null);
   const multi = images.length > 1;
 
   useEffect(() => {
     setZoomed(false);
-    // Preload 1:1 target in background so the swap is instant
     const cur = images[idx];
-    new Image().src = cur.zoom_webp_url || cur.zoom_url || cur.url;
+    // Open immediately at web size — browser cache hit from in-page view
+    setDisplayWebp(cur.web_webp_url || null);
+    setDisplaySrc(cur.web_url || cur.url);
+    // Load zoom in background; swap in-place when ready
+    const upgradeImg = new Image();
+    upgradeImg.onload = () => {
+      setDisplayWebp(cur.zoom_webp_url || null);
+      setDisplaySrc(cur.zoom_url || cur.url);
+    };
+    upgradeImg.src = cur.zoom_webp_url || cur.zoom_url || cur.url;
     // Preload neighbours at web size — they upgrade when navigated to
     [idx - 1, idx + 1].forEach(i => {
       if (i >= 0 && i < images.length) {
@@ -226,6 +238,7 @@ function Lightbox({ images, idx, onClose, onPrev, onNext }) {
         new Image().src = adj.web_webp_url || adj.web_url || adj.url;
       }
     });
+    return () => { upgradeImg.onload = null; };
   }, [idx, images]);
 
   useEffect(() => {
@@ -252,6 +265,22 @@ function Lightbox({ images, idx, onClose, onPrev, onNext }) {
     ),
   };
 
+  function handleTouchStart(e) {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  }
+
+  function handleTouchEnd(e) {
+    if (touchStartX.current === null || !multi || zoomed) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = e.changedTouches[0].clientY - touchStartY.current;
+    touchStartX.current = null;
+    touchStartY.current = null;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+      if (dx < 0) onNext(); else onPrev();
+    }
+  }
+
   const onImgClick = e => {
     e.stopPropagation();
     if (!zoomed) {
@@ -268,6 +297,8 @@ function Lightbox({ images, idx, onClose, onPrev, onNext }) {
     <div
       ref={containerRef}
       onClick={onClose}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
       style={{
         position: "fixed", inset: 0, zIndex: 200,
         background: "rgba(0,0,0,0.93)",
@@ -302,19 +333,14 @@ function Lightbox({ images, idx, onClose, onPrev, onNext }) {
         <button onClick={e => { e.stopPropagation(); onPrev(); }} style={arrowBtn("left")}>‹</button>
       )}
 
-      {(() => {
-        const cur = images[idx];
-        const displayWebp = zoomed ? cur.zoom_webp_url : cur.web_webp_url;
-        const displaySrc = zoomed ? (cur.zoom_url || cur.url) : (cur.web_url || cur.url);
-        return displayWebp ? (
-          <picture>
-            <source type="image/webp" srcSet={displayWebp} />
-            <img ref={imgRef} src={displaySrc} alt="" onClick={onImgClick} style={imgStyle} decoding="async" />
-          </picture>
-        ) : (
+      {displayWebp ? (
+        <picture>
+          <source type="image/webp" srcSet={displayWebp} />
           <img ref={imgRef} src={displaySrc} alt="" onClick={onImgClick} style={imgStyle} decoding="async" />
-        );
-      })()}
+        </picture>
+      ) : (
+        <img ref={imgRef} src={displaySrc} alt="" onClick={onImgClick} style={imgStyle} decoding="async" />
+      )}
 
       {multi && (
         <button onClick={e => { e.stopPropagation(); onNext(); }} style={arrowBtn("right")}>›</button>
