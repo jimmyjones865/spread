@@ -141,6 +141,7 @@ def get_book(slug: str, request: Request, db: Session = Depends(get_db)):
         "year": book.year,
         "publisher": book.publisher,
         "edition": book.edition,
+        "edition_year": book.edition_year,
         "language": book.language,
         "isbn": book.isbn,
         "signed": book.signed,
