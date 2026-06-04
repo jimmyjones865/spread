@@ -231,11 +231,11 @@ function Lightbox({ images, idx, onClose, onPrev, onNext }) {
       setDisplaySrc(cur.zoom_url || cur.url);
     };
     upgradeImg.src = cur.zoom_webp_url || cur.zoom_url || cur.url;
-    // Preload neighbours at web size — they upgrade when navigated to
+    // Preload neighbours at zoom size — upgrade is instant on navigation
     [idx - 1, idx + 1].forEach(i => {
       if (i >= 0 && i < images.length) {
         const adj = images[i];
-        new Image().src = adj.web_webp_url || adj.web_url || adj.url;
+        new Image().src = adj.zoom_webp_url || adj.zoom_url || adj.url;
       }
     });
     return () => { upgradeImg.onload = null; };
