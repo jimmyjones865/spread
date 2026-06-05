@@ -363,27 +363,9 @@ function BookCard({ book, onClick, priority = false }) {
       }}>
         {book.cover_url ? (
           <picture>
-            {(book.cover_avif_400 || book.cover_avif_800) && (
-              <source
-                type="image/avif"
-                srcSet={[
-                  book.cover_avif_400 && `${book.cover_avif_400} 400w`,
-                  book.cover_avif_800 && `${book.cover_avif_800} 800w`,
-                ].filter(Boolean).join(", ")}
-                sizes="190px"
-              />
-            )}
-            {(book.cover_webp_400 || book.cover_webp_800) ? (
-              <source
-                type="image/webp"
-                srcSet={[
-                  book.cover_webp_400 && `${book.cover_webp_400} 400w`,
-                  book.cover_webp_800 && `${book.cover_webp_800} 800w`,
-                ].filter(Boolean).join(", ")}
-                sizes="190px"
-              />
-            ) : (
-              book.cover_webp_url && <source type="image/webp" srcSet={book.cover_webp_url} />
+            {book.cover_avif_400 && <source type="image/avif" srcSet={book.cover_avif_400} />}
+            {(book.cover_webp_400 || book.cover_webp_url) && (
+              <source type="image/webp" srcSet={book.cover_webp_400 || book.cover_webp_url} />
             )}
             <img
               src={book.cover_url}
