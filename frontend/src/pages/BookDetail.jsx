@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useLocation, Link } from "react-router-dom";
-import { bookCache, prefetchBook, getConfig } from "../prefetchCache";
+import { bookCache, prefetchBook, getConfig, avifSupported } from "../prefetchCache";
 import useVTNavigate from "../hooks/useVTNavigate";
 
 function makeSrcset(parts) {
@@ -169,8 +169,7 @@ export default function BookDetail() {
     return (
       <LazyImage
         key={img.id}
-        src={img.web_url || img.url}
-        webpSrc={img.web_webp_url}
+        src={img.url}
         avifSrcset={avifSrcset}
         webpSrcset={webpSrcset}
         imgSizes="(min-width: 768px) 900px, 100vw"
@@ -273,28 +272,32 @@ function Lightbox({ images, idx, onClose, onPrev, onNext }) {
 
     const fit = bestUrl(cur, fitPx);
     setDisplayAvif(fit.avif);
-    setDisplayWebp(fit.webp || cur.web_webp_url || null);
-    setDisplaySrc(cur.web_url || cur.url);
+    setDisplayWebp(fit.webp || null);
+    setDisplaySrc(cur.url);
 
     const zoom = bestUrl(cur, zoomPx);
-    const upgradeUrl = zoom.webp || cur.zoom_webp_url || cur.zoom_url || cur.url;
-    const upgradeImg = new Image();
-    upgradeImg.onload = () => {
-      setDisplayAvif(zoom.avif);
-      setDisplayWebp(zoom.webp || cur.zoom_webp_url || null);
-      setDisplaySrc(cur.zoom_url || cur.url);
-    };
-    upgradeImg.src = upgradeUrl;
+    let cancelled = false;
+    avifSupported().then(avif => {
+      if (cancelled) return;
+      const upgradeImg = new Image();
+      upgradeImg.onload = () => {
+        if (cancelled) return;
+        setDisplayAvif(zoom.avif);
+        setDisplayWebp(zoom.webp || null);
+        setDisplaySrc(cur.url);
+      };
+      upgradeImg.src = (avif && zoom.avif) || zoom.webp || cur.url;
 
-    // Preload neighbours at zoom size
-    [idx - 1, idx + 1].forEach(i => {
-      if (i >= 0 && i < images.length) {
-        const adj = images[i];
-        const adjZoom = bestUrl(adj, zoomPx);
-        new Image().src = adjZoom.webp || adj.zoom_webp_url || adj.zoom_url || adj.url;
-      }
+      // Preload neighbours at zoom size
+      [idx - 1, idx + 1].forEach(i => {
+        if (i >= 0 && i < images.length) {
+          const adj = images[i];
+          const adjZoom = bestUrl(adj, zoomPx);
+          new Image().src = (avif && adjZoom.avif) || adjZoom.webp || adj.url;
+        }
+      });
     });
-    return () => { upgradeImg.onload = null; };
+    return () => { cancelled = true; };
   }, [idx, images]);
 
   useEffect(() => {

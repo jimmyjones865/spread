@@ -348,14 +348,25 @@ function FilterSection({ label, children }) {
 }
 
 function BookCard({ book, onClick, priority = false }) {
+  const cardRef = useRef(null);
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { prefetchBook(book.slug); observer.disconnect(); } },
+      { rootMargin: "300px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [book.slug]);
+
   function preload() {
-    const webpUrl = book.cover_webp_url?.replace("_thumb.webp", "_web.webp");
-    if (webpUrl) new Image().src = webpUrl;
-    else if (book.cover_url) new Image().src = book.cover_url.replace("_thumb.jpg", "_web.jpg");
+    const url = book.cover_avif_800 || book.cover_webp_800;
+    if (url) new Image().src = url;
     prefetchBook(book.slug);
   }
   return (
-    <div onClick={onClick} onMouseEnter={preload} style={{ cursor: "pointer" }}>
+    <div ref={cardRef} onClick={onClick} onMouseEnter={preload} style={{ cursor: "pointer" }}>
       <div style={{
         position: "relative", width: "100%", paddingBottom: "135%",
         background: "var(--bg-elevated)", borderRadius: "3px", overflow: "hidden",

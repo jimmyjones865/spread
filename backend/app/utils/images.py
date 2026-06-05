@@ -10,7 +10,6 @@ MAGIC = {
     b"RIFF": "webp",
 }
 
-VARIANTS = {"thumb": 400, "web": 1400, "zoom": 3000}
 LADDER = {400: 70, 800: 78, 1200: 82, 2000: 85, 3000: 85, 4000: 85}
 
 
@@ -41,21 +40,6 @@ def sanitize_image(data: bytes) -> bytes:
 def generate_variants(clean_bytes: bytes, book_dir: Path, stem: str) -> None:
     img = Image.open(io.BytesIO(clean_bytes))
     orig_w, orig_h = img.size
-
-    for suffix, target_w in VARIANTS.items():
-        if orig_w <= target_w:
-            (book_dir / f"{stem}_{suffix}.jpg").write_bytes(clean_bytes)
-            scaled = img
-        else:
-            ratio = target_w / orig_w
-            new_h = round(orig_h * ratio)
-            scaled = img.resize((target_w, new_h), Image.Resampling.LANCZOS)
-            out = io.BytesIO()
-            scaled.save(out, format="JPEG", quality=85)
-            (book_dir / f"{stem}_{suffix}.jpg").write_bytes(out.getvalue())
-        out_webp = io.BytesIO()
-        scaled.save(out_webp, format="WEBP", quality=85)
-        (book_dir / f"{stem}_{suffix}.webp").write_bytes(out_webp.getvalue())
 
     for target_w, quality in LADDER.items():
         if orig_w < target_w:
