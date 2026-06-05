@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useLocation, Link } from "react-router-dom";
-import { bookCache, prefetchBook, getConfig, avifSupported } from "../prefetchCache";
+import { bookCache, prefetchBook, getConfig } from "../prefetchCache";
 import useVTNavigate from "../hooks/useVTNavigate";
 
 function makeSrcset(parts) {
@@ -277,25 +277,33 @@ function Lightbox({ images, idx, onClose, onPrev, onNext }) {
 
     const zoom = bestUrl(cur, zoomPx);
     let cancelled = false;
-    avifSupported().then(avif => {
+    const upgradeImg = new Image();
+    upgradeImg.onload = () => {
       if (cancelled) return;
-      const upgradeImg = new Image();
-      upgradeImg.onload = () => {
+      setDisplayAvif(zoom.avif);
+      setDisplayWebp(zoom.webp || null);
+      setDisplaySrc(cur.url);
+    };
+    upgradeImg.onerror = () => {
+      if (cancelled || !zoom.webp) return;
+      const fbImg = new Image();
+      fbImg.onload = () => {
         if (cancelled) return;
-        setDisplayAvif(zoom.avif);
-        setDisplayWebp(zoom.webp || null);
+        setDisplayAvif(null);
+        setDisplayWebp(zoom.webp);
         setDisplaySrc(cur.url);
       };
-      upgradeImg.src = (avif && zoom.avif) || zoom.webp || cur.url;
+      fbImg.src = zoom.webp;
+    };
+    upgradeImg.src = zoom.avif || zoom.webp || cur.url;
 
-      // Preload neighbours at zoom size
-      [idx - 1, idx + 1].forEach(i => {
-        if (i >= 0 && i < images.length) {
-          const adj = images[i];
-          const adjZoom = bestUrl(adj, zoomPx);
-          new Image().src = (avif && adjZoom.avif) || adjZoom.webp || adj.url;
-        }
-      });
+    // Preload neighbours at zoom size
+    [idx - 1, idx + 1].forEach(i => {
+      if (i >= 0 && i < images.length) {
+        const adj = images[i];
+        const adjZoom = bestUrl(adj, zoomPx);
+        new Image().src = adjZoom.avif || adjZoom.webp || adj.url;
+      }
     });
     return () => { cancelled = true; };
   }, [idx, images]);

@@ -24,16 +24,3 @@ export function getConfig() {
   }
   return _configPromise;
 }
-
-let _avifSupport = null;
-export function avifSupported() {
-  if (!_avifSupport) {
-    _avifSupport = new Promise(resolve => {
-      const img = new Image();
-      img.onload = () => resolve(img.width === 1);
-      img.onerror = () => resolve(false);
-      img.src = "data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZk1BMUIAAADybWV0YQAAAAAAAAAoaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAGxpYmF2aWYAAAAADnBpdG0AAAAAAAEAAAAeaWxvYwAAAABEAAABAAEAAAABAAACEgABAAAANWlpbmYAAAAAAAEAAAAVaW5mZQIAAAAAAQAAYXYwMQAAAABnaXBycAAAAEhpcGNvAAAAFGlzcGUAAAAAAAAAAQAAAAEAAAAMYXYxQ4EAAAAAABNjb2xybmNseAACAAIABoAAAAAXaXBtYQAAAAAAAAABAAEEAQKDBAAAACdtZGF0EgAKCBgABogQEAwgMg8f8D///8WfhwB8+ErK42A=";
-    });
-  }
-  return _avifSupport;
-}
