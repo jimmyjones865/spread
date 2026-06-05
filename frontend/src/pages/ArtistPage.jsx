@@ -72,11 +72,11 @@ export default function ArtistPage() {
                   {book.cover_url ? (
                     <picture>
                       {book.cover_avif_400 && <source type="image/avif" srcSet={book.cover_avif_400} />}
-                      {(book.cover_webp_400 || book.cover_webp_url) && (
-                        <source type="image/webp" srcSet={book.cover_webp_400 || book.cover_webp_url} />
+                      {book.cover_webp_400 && (
+                        <source type="image/webp" srcSet={book.cover_webp_400} />
                       )}
                       <img
-                        src={(book.cover_avif_400 || book.cover_webp_400 || book.cover_webp_url) ? undefined : book.cover_url}
+                        src={(book.cover_avif_400 || book.cover_webp_400) ? undefined : book.cover_url}
                         alt=""
                         style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                         loading="lazy"
