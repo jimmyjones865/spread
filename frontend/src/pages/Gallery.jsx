@@ -379,7 +379,7 @@ function BookCard({ book, onClick, priority = false }) {
               <source type="image/webp" srcSet={book.cover_webp_400 || book.cover_webp_url} />
             )}
             <img
-              src={book.cover_url}
+              src={(book.cover_avif_400 || book.cover_webp_400 || book.cover_webp_url) ? undefined : book.cover_url}
               alt=""
               style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }}
               loading={priority ? "eager" : "lazy"}

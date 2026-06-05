@@ -70,12 +70,18 @@ export default function ArtistPage() {
               <div key={book.slug} onClick={() => navigate(`/books/${book.slug}`)} style={{ cursor: "pointer", width: "140px", flexShrink: 0 }}>
                 <div style={{ width: "140px", height: "190px", background: "var(--bg-elevated)", borderRadius: "3px", overflow: "hidden", marginBottom: "0.5rem", border: "1px solid var(--border)" }}>
                   {book.cover_url ? (
-                    <img
-                      src={book.cover_url}
-                      alt=""
-                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                      loading="lazy"
-                    />
+                    <picture>
+                      {book.cover_avif_400 && <source type="image/avif" srcSet={book.cover_avif_400} />}
+                      {(book.cover_webp_400 || book.cover_webp_url) && (
+                        <source type="image/webp" srcSet={book.cover_webp_400 || book.cover_webp_url} />
+                      )}
+                      <img
+                        src={(book.cover_avif_400 || book.cover_webp_400 || book.cover_webp_url) ? undefined : book.cover_url}
+                        alt=""
+                        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                        loading="lazy"
+                      />
+                    </picture>
                   ) : (
                     <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <span style={{ fontSize: "20px", color: "var(--text-muted)", fontWeight: 700 }}>

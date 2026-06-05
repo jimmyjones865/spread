@@ -36,7 +36,7 @@ function LazyImage({ src, webpSrc, avifSrcset, webpSrcset, imgSizes, eager, root
 
   const img = (
     <img
-      src={src}
+      src={(avifSrcset || webpSrcset || webpSrc) ? undefined : src}
       alt=""
       onClick={onClick}
       style={{ ...style, aspectRatio }}
