@@ -196,11 +196,6 @@ def get_book(slug: str, request: Request, db: Session = Depends(get_db)):
                 "width": img.width,
                 "height": img.height,
                 "url": f"/images/{book.id}/{img.filename}",
-                "thumb_url": f"/images/{book.id}/{img.filename[:-4]}_thumb.jpg",
-                "web_url": f"/images/{book.id}/{img.filename[:-4]}_web.jpg",
-                "zoom_url": f"/images/{book.id}/{img.filename[:-4]}_zoom.jpg",
-                "web_webp_url": f"/images/{book.id}/{img.filename[:-4]}_web.webp",
-                "zoom_webp_url": f"/images/{book.id}/{img.filename[:-4]}_zoom.webp",
                 **_ladder_urls(book.id, img.filename),
             }
             for img in images

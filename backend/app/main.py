@@ -148,5 +148,7 @@ async def spa(full_path: str):
             pass
         index = STATIC_DIR / "index.html"
         if index.exists():
-            return FileResponse(str(index))
+            resp = FileResponse(str(index))
+            resp.headers["Cache-Control"] = "no-cache"
+            return resp
     raise HTTPException(404)
