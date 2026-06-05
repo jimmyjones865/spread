@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import or_
@@ -12,6 +13,8 @@ router = APIRouter()
 
 SITE_TITLE = os.getenv("SITE_TITLE", "Spread")
 IMAGE_MAX_WIDTH = int(os.getenv("IMAGE_MAX_WIDTH", "900"))
+DATA_DIR = Path("/data/images")
+LADDER_WIDTHS = [400, 800, 1200, 2000, 3000, 4000]
 
 
 def _is_admin(request: Request) -> bool:
@@ -19,17 +22,39 @@ def _is_admin(request: Request) -> bool:
     return bool(token) and validate_session_token(token)
 
 
-def _cover_url(book: Book) -> str | None:
+def _cover_image(book: Book):
     for img in book.images:
         if img.role == ImageRole.cover:
-            return f"/images/{book.id}/{img.filename[:-4]}_thumb.jpg"
-    if book.images:
-        return f"/images/{book.id}/{book.images[0].filename[:-4]}_thumb.jpg"
-    return None
+            return img
+    return book.images[0] if book.images else None
+
+
+def _ladder_urls(book_id: int, filename: str) -> dict:
+    stem = filename[:-4]
+    base = f"/images/{book_id}/{stem}"
+    disk = DATA_DIR / str(book_id)
+    result = {}
+    for w in LADDER_WIDTHS:
+        webp = disk / f"{stem}_{w}.webp"
+        avif = disk / f"{stem}_{w}.avif"
+        result[f"url_{w}"] = f"{base}_{w}.webp" if webp.exists() else None
+        result[f"avif_{w}"] = f"{base}_{w}.avif" if avif.exists() else None
+    return result
 
 
 def _book_list_item(book: Book, artist_name: str, artist_slug: str) -> dict:
-    cover_url = _cover_url(book)
+    cover_img = _cover_image(book)
+    cover_url = cover_webp_url = None
+    cover_webp_400 = cover_avif_400 = cover_webp_800 = cover_avif_800 = None
+    if cover_img:
+        stem = cover_img.filename[:-4]
+        cover_url = f"/images/{book.id}/{stem}_thumb.jpg"
+        cover_webp_url = f"/images/{book.id}/{stem}_thumb.webp"
+        disk = DATA_DIR / str(book.id)
+        cover_webp_400 = f"/images/{book.id}/{stem}_400.webp" if (disk / f"{stem}_400.webp").exists() else None
+        cover_avif_400 = f"/images/{book.id}/{stem}_400.avif" if (disk / f"{stem}_400.avif").exists() else None
+        cover_webp_800 = f"/images/{book.id}/{stem}_800.webp" if (disk / f"{stem}_800.webp").exists() else None
+        cover_avif_800 = f"/images/{book.id}/{stem}_800.avif" if (disk / f"{stem}_800.avif").exists() else None
     return {
         "slug": book.slug,
         "title": book.title,
@@ -42,7 +67,11 @@ def _book_list_item(book: Book, artist_name: str, artist_slug: str) -> dict:
         "artist_name": artist_name,
         "artist_slug": artist_slug,
         "cover_url": cover_url,
-        "cover_webp_url": cover_url.replace("_thumb.jpg", "_thumb.webp") if cover_url else None,
+        "cover_webp_url": cover_webp_url,
+        "cover_webp_400": cover_webp_400,
+        "cover_avif_400": cover_avif_400,
+        "cover_webp_800": cover_webp_800,
+        "cover_avif_800": cover_avif_800,
         "tags": [t.name for t in book.tags],
     }
 
@@ -172,6 +201,7 @@ def get_book(slug: str, request: Request, db: Session = Depends(get_db)):
                 "zoom_url": f"/images/{book.id}/{img.filename[:-4]}_zoom.jpg",
                 "web_webp_url": f"/images/{book.id}/{img.filename[:-4]}_web.webp",
                 "zoom_webp_url": f"/images/{book.id}/{img.filename[:-4]}_zoom.webp",
+                **_ladder_urls(book.id, img.filename),
             }
             for img in images
         ],

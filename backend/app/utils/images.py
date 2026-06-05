@@ -11,6 +11,7 @@ MAGIC = {
 }
 
 VARIANTS = {"thumb": 400, "web": 1400, "zoom": 3000}
+LADDER = {400: 70, 800: 78, 1200: 82, 2000: 85, 3000: 85, 4000: 85}
 
 
 def _detect_type(data: bytes) -> str | None:
@@ -40,6 +41,7 @@ def sanitize_image(data: bytes) -> bytes:
 def generate_variants(clean_bytes: bytes, book_dir: Path, stem: str) -> None:
     img = Image.open(io.BytesIO(clean_bytes))
     orig_w, orig_h = img.size
+
     for suffix, target_w in VARIANTS.items():
         if orig_w <= target_w:
             (book_dir / f"{stem}_{suffix}.jpg").write_bytes(clean_bytes)
@@ -54,3 +56,19 @@ def generate_variants(clean_bytes: bytes, book_dir: Path, stem: str) -> None:
         out_webp = io.BytesIO()
         scaled.save(out_webp, format="WEBP", quality=85)
         (book_dir / f"{stem}_{suffix}.webp").write_bytes(out_webp.getvalue())
+
+    for target_w, quality in LADDER.items():
+        if orig_w < target_w:
+            continue
+        if orig_w == target_w:
+            scaled = img
+        else:
+            ratio = target_w / orig_w
+            new_h = round(orig_h * ratio)
+            scaled = img.resize((target_w, new_h), Image.Resampling.LANCZOS)
+        out_webp = io.BytesIO()
+        scaled.save(out_webp, format="WEBP", quality=quality)
+        (book_dir / f"{stem}_{target_w}.webp").write_bytes(out_webp.getvalue())
+        out_avif = io.BytesIO()
+        scaled.save(out_avif, format="AVIF", quality=quality)
+        (book_dir / f"{stem}_{target_w}.avif").write_bytes(out_avif.getvalue())

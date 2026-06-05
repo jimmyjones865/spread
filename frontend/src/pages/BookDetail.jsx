@@ -3,7 +3,12 @@ import { useParams, useLocation, Link } from "react-router-dom";
 import { bookCache, prefetchBook, getConfig } from "../prefetchCache";
 import useVTNavigate from "../hooks/useVTNavigate";
 
-function LazyImage({ src, webpSrc, eager, root, aspectRatio, style, onClick, fetchPriority }) {
+function makeSrcset(parts) {
+  const entries = parts.filter(Boolean);
+  return entries.length > 0 ? entries.join(", ") : null;
+}
+
+function LazyImage({ src, webpSrc, avifSrcset, webpSrcset, imgSizes, eager, root, aspectRatio, style, onClick, fetchPriority }) {
   const [loaded, setLoaded] = useState(eager);
   const ref = useRef();
 
@@ -40,10 +45,14 @@ function LazyImage({ src, webpSrc, eager, root, aspectRatio, style, onClick, fet
     />
   );
 
-  if (!webpSrc) return img;
+  if (!avifSrcset && !webpSrcset && !webpSrc) return img;
   return (
     <picture>
-      <source type="image/webp" srcSet={webpSrc} />
+      {avifSrcset && <source type="image/avif" srcSet={avifSrcset} sizes={imgSizes} />}
+      {webpSrcset
+        ? <source type="image/webp" srcSet={webpSrcset} sizes={imgSizes} />
+        : webpSrc && <source type="image/webp" srcSet={webpSrc} />
+      }
       {img}
     </picture>
   );
@@ -140,19 +149,40 @@ export default function BookDetail() {
     : imageMaxWidth;
 
   const metadata = <BookMeta book={book} />;
-  const imageList = book.images.map((img, idx) => (
-    <LazyImage
-      key={img.id}
-      src={img.web_url || img.url}
-      webpSrc={img.web_webp_url}
-      eager={idx === 0}
-      fetchPriority={idx === 0 ? "high" : undefined}
-      root={isMobile ? null : rightRef}
-      aspectRatio={img.width && img.height ? `${img.width}/${img.height}` : undefined}
-      onClick={() => setLightboxIdx(idx)}
-      style={{ width: "100%", height: "auto", display: "block", cursor: "zoom-in" }}
-    />
-  ));
+  const imageList = book.images.map((img, idx) => {
+    const avifSrcset = makeSrcset([
+      img.avif_400 && `${img.avif_400} 400w`,
+      img.avif_800 && `${img.avif_800} 800w`,
+      img.avif_1200 && `${img.avif_1200} 1200w`,
+      img.avif_2000 && `${img.avif_2000} 2000w`,
+      img.avif_3000 && `${img.avif_3000} 3000w`,
+      img.avif_4000 && `${img.avif_4000} 4000w`,
+    ]);
+    const webpSrcset = makeSrcset([
+      img.url_400 && `${img.url_400} 400w`,
+      img.url_800 && `${img.url_800} 800w`,
+      img.url_1200 && `${img.url_1200} 1200w`,
+      img.url_2000 && `${img.url_2000} 2000w`,
+      img.url_3000 && `${img.url_3000} 3000w`,
+      img.url_4000 && `${img.url_4000} 4000w`,
+    ]);
+    return (
+      <LazyImage
+        key={img.id}
+        src={img.web_url || img.url}
+        webpSrc={img.web_webp_url}
+        avifSrcset={avifSrcset}
+        webpSrcset={webpSrcset}
+        imgSizes="(min-width: 768px) 900px, 100vw"
+        eager={idx === 0}
+        fetchPriority={idx === 0 ? "high" : undefined}
+        root={isMobile ? null : rightRef}
+        aspectRatio={img.width && img.height ? `${img.width}/${img.height}` : undefined}
+        onClick={() => setLightboxIdx(idx)}
+        style={{ width: "100%", height: "auto", display: "block", cursor: "zoom-in" }}
+      />
+    );
+  });
   const bookNav = (prevSlug || nextSlug) && (
     <div style={{ display: "flex", justifyContent: "space-between", padding: "0.75rem 2rem" }}>
       {prevSlug
@@ -209,6 +239,7 @@ export default function BookDetail() {
 
 function Lightbox({ images, idx, onClose, onPrev, onNext }) {
   const [zoomed, setZoomed] = useState(false);
+  const [displayAvif, setDisplayAvif] = useState(null);
   const [displayWebp, setDisplayWebp] = useState(null);
   const [displaySrc, setDisplaySrc] = useState(null);
   const containerRef = useRef(null);
@@ -221,21 +252,46 @@ function Lightbox({ images, idx, onClose, onPrev, onNext }) {
   useEffect(() => {
     setZoomed(false);
     const cur = images[idx];
-    // Open immediately at web size — browser cache hit from in-page view
-    setDisplayWebp(cur.web_webp_url || null);
+
+    // Pick ladder URL matching what the detail view would cache at this viewport/DPR.
+    // detail sizes: "(min-width: 768px) 900px, 100vw" — mirror that here.
+    const dpr = window.devicePixelRatio || 1;
+    const sizesPx = window.innerWidth < 768 ? window.innerWidth : 900;
+    const fitPx = sizesPx * dpr;
+    const zoomPx = fitPx * 2;
+    const WIDTHS = [400, 800, 1200, 2000, 3000, 4000];
+
+    function bestUrl(img, minPx) {
+      const w = WIDTHS.find(w => w >= minPx && (img[`avif_${w}`] || img[`url_${w}`]));
+      if (w) return { avif: img[`avif_${w}`] || null, webp: img[`url_${w}`] || null };
+      // image too small for minPx — use largest available ladder entry
+      for (const fw of [...WIDTHS].reverse()) {
+        if (img[`url_${fw}`]) return { avif: img[`avif_${fw}`] || null, webp: img[`url_${fw}`] };
+      }
+      return { avif: null, webp: null };
+    }
+
+    const fit = bestUrl(cur, fitPx);
+    setDisplayAvif(fit.avif);
+    setDisplayWebp(fit.webp || cur.web_webp_url || null);
     setDisplaySrc(cur.web_url || cur.url);
-    // Load zoom in background; swap in-place when ready
+
+    const zoom = bestUrl(cur, zoomPx);
+    const upgradeUrl = zoom.webp || cur.zoom_webp_url || cur.zoom_url || cur.url;
     const upgradeImg = new Image();
     upgradeImg.onload = () => {
-      setDisplayWebp(cur.zoom_webp_url || null);
+      setDisplayAvif(zoom.avif);
+      setDisplayWebp(zoom.webp || cur.zoom_webp_url || null);
       setDisplaySrc(cur.zoom_url || cur.url);
     };
-    upgradeImg.src = cur.zoom_webp_url || cur.zoom_url || cur.url;
-    // Preload neighbours at zoom size — upgrade is instant on navigation
+    upgradeImg.src = upgradeUrl;
+
+    // Preload neighbours at zoom size
     [idx - 1, idx + 1].forEach(i => {
       if (i >= 0 && i < images.length) {
         const adj = images[i];
-        new Image().src = adj.zoom_webp_url || adj.zoom_url || adj.url;
+        const adjZoom = bestUrl(adj, zoomPx);
+        new Image().src = adjZoom.webp || adj.zoom_webp_url || adj.zoom_url || adj.url;
       }
     });
     return () => { upgradeImg.onload = null; };
@@ -333,9 +389,10 @@ function Lightbox({ images, idx, onClose, onPrev, onNext }) {
         <button onClick={e => { e.stopPropagation(); onPrev(); }} style={arrowBtn("left")}>‹</button>
       )}
 
-      {displayWebp ? (
+      {(displayAvif || displayWebp) ? (
         <picture>
-          <source type="image/webp" srcSet={displayWebp} />
+          {displayAvif && <source type="image/avif" srcSet={displayAvif} />}
+          {displayWebp && <source type="image/webp" srcSet={displayWebp} />}
           <img ref={imgRef} src={displaySrc} alt="" onClick={onImgClick} style={imgStyle} decoding="async" />
         </picture>
       ) : (
