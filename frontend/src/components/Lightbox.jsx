@@ -12,10 +12,15 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
   const clickRatioRef = useRef(null);
   const touchStartX = useRef(null);
   const touchStartY = useRef(null);
+  const zoomedRef = useRef(false);
+  const preSwapRef = useRef(null);
   const multi = images.length > 1;
+
+  zoomedRef.current = zoomed;
 
   useEffect(() => {
     setZoomed(false);
+    preSwapRef.current = null;
     const cur = images[idx];
 
     // Pick ladder URL matching what the detail view would cache at this viewport/DPR.
@@ -43,27 +48,31 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
 
     const zoom = bestUrl(cur, zoomPx);
     let cancelled = false;
-    const upgradeImg = new Image();
-    upgradeImg.onload = () => {
+
+    function applyUpgrade(avif, webp) {
       if (cancelled) return;
-      if (zoom.avif || zoom.webp) {
-        setDisplayAvif(zoom.avif);
-        setDisplayWebp(zoom.webp || null);
-        setDisplaySrc(cur.url);
+      if (zoomedRef.current && imgRef.current && containerRef.current) {
+        preSwapRef.current = {
+          naturalWidth: imgRef.current.naturalWidth,
+          scrollLeft: containerRef.current.scrollLeft,
+          scrollTop: containerRef.current.scrollTop,
+        };
       }
-    };
-    upgradeImg.onerror = () => {
-      if (cancelled || !zoom.webp) return;
-      const fbImg = new Image();
-      fbImg.onload = () => {
-        if (cancelled) return;
-        setDisplayAvif(null);
-        setDisplayWebp(zoom.webp);
-        setDisplaySrc(cur.url);
-      };
-      fbImg.src = zoom.webp;
-    };
-    upgradeImg.src = zoom.avif || zoom.webp || cur.url;
+      setDisplayAvif(avif);
+      setDisplayWebp(webp);
+    }
+
+    const upgradeSrc = zoom.avif || zoom.webp || cur.url;
+    const upgradeImg = new Image();
+    upgradeImg.src = upgradeSrc;
+    upgradeImg.decode()
+      .then(() => applyUpgrade(zoom.avif, zoom.webp || null))
+      .catch(() => {
+        if (cancelled || !zoom.webp || upgradeSrc === zoom.webp) return;
+        const fbImg = new Image();
+        fbImg.src = zoom.webp;
+        fbImg.decode().then(() => applyUpgrade(null, zoom.webp)).catch(() => {});
+      });
 
     // Preload neighbours at zoom size
     [idx - 1, idx + 1].forEach(i => {
@@ -75,6 +84,28 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
     });
     return () => { cancelled = true; };
   }, [idx, images]);
+
+  // Preserve proportional scroll position when source upgrades while in zoom mode
+  useEffect(() => {
+    const pre = preSwapRef.current;
+    if (!pre || !imgRef.current || !containerRef.current) return;
+    preSwapRef.current = null;
+    const img = imgRef.current;
+    const container = containerRef.current;
+    function adjust() {
+      const newW = img.naturalWidth;
+      if (newW > 0 && pre.naturalWidth > 0 && newW !== pre.naturalWidth) {
+        const ratio = newW / pre.naturalWidth;
+        container.scrollLeft = pre.scrollLeft * ratio;
+        container.scrollTop = pre.scrollTop * ratio;
+      }
+    }
+    if (img.complete && img.naturalWidth > 0) adjust();
+    else {
+      img.addEventListener("load", adjust, { once: true });
+      return () => img.removeEventListener("load", adjust);
+    }
+  }, [displayAvif, displayWebp]);
 
   useEffect(() => {
     if (!zoomed || !clickRatioRef.current || !containerRef.current || !imgRef.current) return;
@@ -90,13 +121,28 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
     });
   }, [zoomed]);
 
+  // UPGRADE_STRETCH: true = fit image stretched to final size (blurry then sharp)
+  //                  false = fit image at natural size, snaps to final size on upgrade
+  const UPGRADE_STRETCH = true;
+
+  const cur = images[idx];
+  let fitStyle;
+  if (UPGRADE_STRETCH && cur?.width && cur?.height) {
+    const maxW = window.innerWidth;
+    const maxH = window.innerHeight;
+    const scale = Math.min(maxW / cur.width, maxH / cur.height, 1);
+    fitStyle = { width: Math.round(cur.width * scale) + "px", height: Math.round(cur.height * scale) + "px" };
+  } else {
+    fitStyle = { maxHeight: "92vh", maxWidth: "90vw", objectFit: "contain" };
+  }
+
   const imgStyle = {
     display: "block",
     userSelect: "none",
     cursor: zoomed ? "zoom-out" : "zoom-in",
     ...(zoomed
       ? { width: "auto", height: "auto", maxWidth: "none", maxHeight: "none", margin: "3.5rem auto 2rem" }
-      : { maxHeight: "92vh", maxWidth: "90vw", objectFit: "contain" }
+      : fitStyle
     ),
   };
 
