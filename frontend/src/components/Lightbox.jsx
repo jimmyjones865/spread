@@ -51,6 +51,7 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
 
     function applyUpgrade(avif, webp) {
       if (cancelled) return;
+      console.log("applyUpgrade zoomed:", zoomedRef.current, "naturalWidth:", imgRef.current?.naturalWidth, "scrollLeft:", containerRef.current?.scrollLeft);
       if (zoomedRef.current && imgRef.current && containerRef.current) {
         preSwapRef.current = {
           naturalWidth: imgRef.current.naturalWidth,
@@ -94,6 +95,7 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
     const container = containerRef.current;
     function adjust() {
       const newW = img.naturalWidth;
+      console.log("adjust: pre.naturalWidth:", pre.naturalWidth, "newW:", newW, "complete:", img.complete);
       if (newW > 0 && pre.naturalWidth > 0 && newW !== pre.naturalWidth) {
         const ratio = newW / pre.naturalWidth;
         container.scrollLeft = pre.scrollLeft * ratio;
@@ -102,6 +104,7 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
     }
     if (img.complete && img.naturalWidth > 0) adjust();
     else {
+      console.log("adjust: waiting for load event, naturalWidth:", img.naturalWidth, "complete:", img.complete);
       img.addEventListener("load", adjust, { once: true });
       return () => img.removeEventListener("load", adjust);
     }
