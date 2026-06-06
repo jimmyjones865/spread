@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import PublicFooter from "../components/PublicFooter";
 import ThemeToggle from "../components/ThemeToggle";
+import api from "../api";
 import { prefetchBook, getConfig } from "../prefetchCache";
 import useVTNavigate from "../hooks/useVTNavigate";
 
@@ -63,8 +64,12 @@ export default function Gallery() {
       setArtists(_staticCache.artists);
       setAllTags(_staticCache.tags);
     } else {
-      fetch("/api/artists", { credentials: "include" }).then(r => r.json()).then(d => { _staticCache.artists = d; setArtists(d); }).catch(() => {});
-      fetch("/api/tags", { credentials: "include" }).then(r => r.json()).then(d => { _staticCache.tags = d; setAllTags(d); }).catch(() => {});
+      api.public.listArtists()
+        .then(d => { _staticCache.artists = d; setArtists(d); })
+        .catch(() => {});
+      api.public.listTags()
+        .then(d => { _staticCache.tags = d; setAllTags(d); })
+        .catch(() => {});
     }
     getConfig().then(d => { if (d.title) setSiteTitle(d.title); });
   }, []);
@@ -101,8 +106,7 @@ export default function Gallery() {
     }
 
     setLoading(true);
-    fetch(`/api/books?${params}`, { credentials: "include" })
-      .then(r => r.json())
+    api.public.listBooks(params)
       .then(data => {
         const years = [...new Set(data.map(b => b.year).filter(Boolean))].sort((a, b) => b - a);
         _booksCache[key] = { data, years };

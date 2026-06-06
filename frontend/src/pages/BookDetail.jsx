@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useLocation } from "react-router-dom";
-import { bookCache, prefetchBook, getConfig } from "../prefetchCache";
+import { getBook, prefetchBook, getConfig } from "../prefetchCache";
 import useVTNavigate from "../hooks/useVTNavigate";
 import { useIsMobile } from "../hooks/useIsMobile";
 import Lightbox from "../components/Lightbox";
@@ -43,15 +43,10 @@ export default function BookDetail() {
   }, [slug]);
 
   useEffect(() => {
-    const cached = bookCache[slug];
-    if (cached) {
-      cached.then(data => { if (data) setBook(data); else setNotFound(true); });
-      return;
-    }
-    bookCache[slug] = fetch(`/api/books/${slug}`, { credentials: "include" })
-      .then(r => r.ok ? r.json() : null)
-      .catch(() => null);
-    bookCache[slug].then(data => { if (data) setBook(data); else setNotFound(true); });
+    getBook(slug).then(data => {
+      if (data) setBook(data);
+      else setNotFound(true);
+    });
   }, [slug]);
 
   useEffect(() => {

@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
+import api from "../api";
 
 export default function PublicFooter() {
   const [items, setItems] = useState([]);
 
   useEffect(() => {
-    fetch("/api/footer", { credentials: "include" })
-      .then(r => r.json())
+    api.public.getFooter()
       .then(setItems)
       .catch(() => {});
   }, []);

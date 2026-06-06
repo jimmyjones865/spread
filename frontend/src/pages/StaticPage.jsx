@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import PublicFooter from "../components/PublicFooter";
 import ThemeToggle from "../components/ThemeToggle";
+import api from "../api";
 
 export default function StaticPage() {
   const { slug } = useParams();
@@ -10,8 +11,7 @@ export default function StaticPage() {
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/pages/${slug}`, { credentials: "include" })
-      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+    api.public.getPage(slug)
       .then(setPage)
       .catch(() => setNotFound(true));
   }, [slug]);
