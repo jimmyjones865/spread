@@ -13,7 +13,7 @@ export default function AdminBookForm() {
   const navigate = useNavigate();
 
   const {
-    isNew, form, set, book,
+    isNew, form, set, book, loadBook,
     artists, allTags, loadArtists, loadTags,
     selectedTags, setSelectedTags,
     saving, saved, error, save, saveWithOverrides,
