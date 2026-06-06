@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import PublicFooter from "../components/PublicFooter";
 import ThemeToggle from "../components/ThemeToggle";
+import api from "../api";
 
 export default function ArtistPage() {
   const { slug } = useParams();
@@ -10,8 +11,7 @@ export default function ArtistPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch(`/api/artists/${slug}`, { credentials: "include" })
-      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+    api.public.getArtist(slug)
       .then(setArtist)
       .catch(() => setNotFound(true));
   }, [slug]);

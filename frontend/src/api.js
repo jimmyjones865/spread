@@ -23,20 +23,27 @@ const put  = (path, body)  => req("PUT",    path, body);
 const del  = (path)        => req("DELETE", path);
 const patch = (path, body) => req("PATCH",  path, body);
 
+function qs(params) {
+  if (!params) return "";
+  if (typeof params === "string") return params.startsWith("?") ? params.slice(1) : params;
+  const s = new URLSearchParams(params).toString();
+  return s ? `?${s}` : "";
+}
+
 export default {
   // Auth
   login:  (password) => post("/api/auth/login", { password }),
   logout: ()         => post("/api/auth/logout"),
   me:     ()         => get("/api/auth/me"),
 
-  // Artists
+  // Artists (admin)
   getArtists:    ()           => get("/api/admin/artists"),
   getArtist:     (id)         => get(`/api/admin/artists/${id}`),
   createArtist:  (data)       => post("/api/admin/artists", data),
   updateArtist:  (id, data)   => put(`/api/admin/artists/${id}`, data),
   deleteArtist:  (id)         => del(`/api/admin/artists/${id}`),
 
-  // Books
+  // Books (admin)
   getBooks:   ()         => get("/api/admin/books"),
   getBook:    (id)       => get(`/api/admin/books/${id}`),
   createBook: (data)     => post("/api/admin/books", data),
@@ -60,20 +67,20 @@ export default {
   updateLink: (bookId, linkId, data) => put(`/api/admin/books/${bookId}/links/${linkId}`, data),
   deleteLink: (bookId, linkId)       => del(`/api/admin/books/${bookId}/links/${linkId}`),
 
-  // Tags
+  // Tags (admin)
   getTags:    ()           => get("/api/admin/tags"),
   createTag:  (name)       => post("/api/admin/tags", { name }),
   updateTag:  (id, name)   => put(`/api/admin/tags/${id}`, { name }),
   deleteTag:  (id)         => del(`/api/admin/tags/${id}`),
 
-  // Pages
+  // Pages (admin)
   getPages:   ()         => get("/api/admin/pages"),
   getPage:    (id)       => get(`/api/admin/pages/${id}`),
   createPage: (data)     => post("/api/admin/pages", data),
   updatePage: (id, data) => put(`/api/admin/pages/${id}`, data),
   deletePage: (id)       => del(`/api/admin/pages/${id}`),
 
-  // Footer
+  // Footer (admin)
   getFooter:         ()         => get("/api/admin/footer"),
   createFooterItem:  (data)     => post("/api/admin/footer", data),
   updateFooterItem:  (id, data) => put(`/api/admin/footer/${id}`, data),
@@ -90,4 +97,16 @@ export default {
 
   // Image size hints (HEAD requests via backend)
   imageMeta: (urls) => post("/api/admin/image-meta", { urls }),
+
+  // Public reads (no /api/admin prefix). Used by Gallery, BookDetail, ArtistPage, StaticPage, PublicFooter, and prefetchCache.
+  public: {
+    getBook:      (slug)            => get(`/api/books/${slug}`),
+    listBooks:    (params)          => get(`/api/books${qs(params)}`),
+    getArtist:    (slug)            => get(`/api/artists/${slug}`),
+    listArtists:  ()                => get("/api/artists"),
+    listTags:     ()                => get("/api/tags"),
+    getPage:      (slug)            => get(`/api/pages/${slug}`),
+    getConfig:    ()                => get("/api/config"),
+    getFooter:    ()                => get("/api/footer"),
+  },
 };

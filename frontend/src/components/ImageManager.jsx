@@ -17,12 +17,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import api from "../api";
 import ConfirmModal from "./ConfirmModal";
-
-function fmtSize(bytes) {
-  if (!bytes) return null;
-  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-  return `${Math.round(bytes / 1024)} KB`;
-}
+import { fmtSize } from "../utils/format";
 
 export default function ImageManager({ bookId, images, onChange }) {
   const [uploading, setUploading] = useState(false);

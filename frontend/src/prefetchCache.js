@@ -1,11 +1,16 @@
+import api from "./api";
+
 export const bookCache = {};
 
+export function getBook(slug) {
+  if (!slug) return Promise.resolve(null);
+  if (bookCache[slug]) return bookCache[slug];
+  bookCache[slug] = api.public.getBook(slug).catch(() => null);
+  return bookCache[slug];
+}
+
 export function prefetchBook(slug) {
-  if (!slug || bookCache[slug]) return;
-  bookCache[slug] = fetch(`/api/books/${slug}`, { credentials: "include" })
-    .then(r => r.ok ? r.json() : null)
-    .catch(() => null);
-  bookCache[slug].then(data => {
+  getBook(slug).then(data => {
     const img = data?.images?.[0];
     const dpr = window.devicePixelRatio || 1;
     const url = dpr >= 2
@@ -18,9 +23,7 @@ export function prefetchBook(slug) {
 let _configPromise = null;
 export function getConfig() {
   if (!_configPromise) {
-    _configPromise = fetch("/api/config")
-      .then(r => r.json())
-      .catch(() => ({ image_max_width: 900, title: "Spread" }));
+    _configPromise = api.public.getConfig().catch(() => ({ image_max_width: 900, title: "Spread" }));
   }
   return _configPromise;
 }

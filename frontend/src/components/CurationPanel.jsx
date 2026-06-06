@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../api";
+import { fmtSize } from "../utils/format";
 
 export default function CurationPanel({ bookId, onImagesAdded, onAddToBook }) {
   const [url, setUrl] = useState("");
@@ -281,12 +282,6 @@ export default function CurationPanel({ bookId, onImagesAdded, onAddToBook }) {
       )}
     </div>
   );
-}
-
-function fmtSize(bytes) {
-  if (bytes == null) return null;
-  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-  return `${Math.round(bytes / 1024)} KB`;
 }
 
 function ImageCard({ url, isCover, isSpread, spreadIdx, sizeBytes, dims, onCover, onSpread, onDimsLoaded }) {
