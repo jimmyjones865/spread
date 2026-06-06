@@ -7,20 +7,20 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
   const [displayAvif, setDisplayAvif] = useState(null);
   const [displayWebp, setDisplayWebp] = useState(null);
   const [displaySrc, setDisplaySrc] = useState(null);
+  const [lockedWidth, setLockedWidth] = useState(null);
   const containerRef = useRef(null);
   const imgRef = useRef(null);
   const clickRatioRef = useRef(null);
   const touchStartX = useRef(null);
   const touchStartY = useRef(null);
   const zoomedRef = useRef(false);
-  const preSwapRef = useRef(null);
   const multi = images.length > 1;
 
   zoomedRef.current = zoomed;
 
   useEffect(() => {
     setZoomed(false);
-    preSwapRef.current = null;
+    setLockedWidth(null);
     const cur = images[idx];
 
     // Pick ladder URL matching what the detail view would cache at this viewport/DPR.
@@ -51,13 +51,9 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
 
     function applyUpgrade(avif, webp) {
       if (cancelled) return;
-      console.log("applyUpgrade zoomed:", zoomedRef.current, "naturalWidth:", imgRef.current?.naturalWidth, "scrollLeft:", containerRef.current?.scrollLeft);
-      if (zoomedRef.current && imgRef.current && containerRef.current) {
-        preSwapRef.current = {
-          naturalWidth: imgRef.current.naturalWidth,
-          scrollLeft: containerRef.current.scrollLeft,
-          scrollTop: containerRef.current.scrollTop,
-        };
+      if (zoomedRef.current && imgRef.current) {
+        const w = imgRef.current.offsetWidth;
+        if (w > 0) setLockedWidth(w);
       }
       setDisplayAvif(avif);
       setDisplayWebp(webp);
@@ -85,30 +81,6 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
     });
     return () => { cancelled = true; };
   }, [idx, images]);
-
-  // Preserve proportional scroll position when source upgrades while in zoom mode
-  useEffect(() => {
-    const pre = preSwapRef.current;
-    if (!pre || !imgRef.current || !containerRef.current) return;
-    preSwapRef.current = null;
-    const img = imgRef.current;
-    const container = containerRef.current;
-    function adjust() {
-      const newW = img.naturalWidth;
-      console.log("adjust: pre.naturalWidth:", pre.naturalWidth, "newW:", newW, "complete:", img.complete);
-      if (newW > 0 && pre.naturalWidth > 0 && newW !== pre.naturalWidth) {
-        const ratio = newW / pre.naturalWidth;
-        container.scrollLeft = pre.scrollLeft * ratio;
-        container.scrollTop = pre.scrollTop * ratio;
-      }
-    }
-    if (img.complete && img.naturalWidth > 0) adjust();
-    else {
-      console.log("adjust: waiting for load event, naturalWidth:", img.naturalWidth, "complete:", img.complete);
-      img.addEventListener("load", adjust, { once: true });
-      return () => img.removeEventListener("load", adjust);
-    }
-  }, [displayAvif, displayWebp]);
 
   useEffect(() => {
     if (!zoomed || !clickRatioRef.current || !containerRef.current || !imgRef.current) return;
@@ -144,7 +116,7 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
     userSelect: "none",
     cursor: zoomed ? "zoom-out" : "zoom-in",
     ...(zoomed
-      ? { width: "auto", height: "auto", maxWidth: "none", maxHeight: "none", margin: "3.5rem auto 2rem" }
+      ? { width: lockedWidth ? `${lockedWidth}px` : "auto", height: "auto", maxWidth: "none", maxHeight: "none", margin: "3.5rem auto 2rem" }
       : fitStyle
     ),
   };
@@ -173,8 +145,11 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
         rx: (e.clientX - rect.left) / rect.width,
         ry: (e.clientY - rect.top) / rect.height,
       };
+      setZoomed(true);
+    } else {
+      setLockedWidth(null);
+      setZoomed(false);
     }
-    setZoomed(z => !z);
   };
 
   return (
@@ -203,7 +178,7 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
         )}
         <div style={{ position: "absolute", right: "1.25rem", display: "flex", gap: "0.75rem", pointerEvents: "all" }}>
           <button
-            onClick={e => { e.stopPropagation(); setZoomed(z => !z); }}
+            onClick={e => { e.stopPropagation(); if (zoomed) setLockedWidth(null); setZoomed(z => !z); }}
             style={topBtn}
             title={zoomed ? "Fit to screen" : "100% zoom"}
           >
