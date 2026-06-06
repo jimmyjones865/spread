@@ -196,7 +196,7 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
         <picture>
           {displayAvif && <source type="image/avif" srcSet={displayAvif} />}
           {displayWebp && <source type="image/webp" srcSet={displayWebp} />}
-          <img ref={imgRef} src={displaySrc} alt="" onClick={onImgClick} style={imgStyle} decoding="async" />
+          <img ref={imgRef} src={undefined} alt="" onClick={onImgClick} style={imgStyle} decoding="async" />
         </picture>
       ) : (
         <img ref={imgRef} src={displaySrc} alt="" onClick={onImgClick} style={imgStyle} decoding="async" />
