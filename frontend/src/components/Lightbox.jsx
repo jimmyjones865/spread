@@ -2,6 +2,19 @@ import { useState, useEffect, useRef } from "react";
 
 const topBtn = { background: "none", border: "none", color: "rgba(255,255,255,0.55)", fontSize: "15px", cursor: "pointer", padding: "2px 4px", fontFamily: "var(--font-body)" };
 
+const WIDTHS = [400, 800, 1300, 1500, 2000, 3000, 4000];
+// UPGRADE_STRETCH: true = fit image stretched to final display size (blurry→sharp on initial open)
+const UPGRADE_STRETCH = true;
+
+function bestUrl(img, minPx) {
+  const w = WIDTHS.find(w => w >= minPx && (img[`avif_${w}`] || img[`url_${w}`]));
+  if (w) return { avif: img[`avif_${w}`] || null, webp: img[`url_${w}`] || null };
+  for (const fw of [...WIDTHS].reverse()) {
+    if (img[`avif_${fw}`] || img[`url_${fw}`]) return { avif: img[`avif_${fw}`] || null, webp: img[`url_${fw}`] || null };
+  }
+  return { avif: null, webp: null };
+}
+
 export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
   const [zoomed, setZoomed] = useState(false);
   const [displayAvif, setDisplayAvif] = useState(null);
@@ -15,16 +28,16 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
   const touchStartX = useRef(null);
   const touchStartY = useRef(null);
   const zoomedRef = useRef(false);
+  const hasLoadedRef = useRef(false);
   const multi = images.length > 1;
 
   zoomedRef.current = zoomed;
 
   useEffect(() => {
-    setZoomed(false);
-    setLockedWidth(null);
     const cur = images[idx];
+    const isNav = hasLoadedRef.current;
+    hasLoadedRef.current = true;
 
-    // Calculate fitStyle in effect so it updates in sync with display sources
     let fitStyleValue;
     if (UPGRADE_STRETCH && cur?.width && cur?.height) {
       const maxW = window.innerWidth;
@@ -34,64 +47,115 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
     } else {
       fitStyleValue = { maxHeight: "92vh", maxWidth: "90vw", objectFit: "contain" };
     }
-    setFitStyle(fitStyleValue);
 
-    // Pick ladder URL matching what the detail view would cache at this viewport/DPR.
-    // detail sizes: "(min-width: 768px) 900px, 100vw" — mirror that here.
+    // detail sizes: "(min-width: 768px) 900px, 100vw" — mirror that here
     const dpr = window.devicePixelRatio || 1;
     const sizesPx = window.innerWidth < 768 ? window.innerWidth : 900;
     const fitPx = sizesPx * dpr;
     const zoomPx = fitPx * 2;
-    const WIDTHS = [400, 800, 1300, 1500, 2000, 3000, 4000];
-
-    function bestUrl(img, minPx) {
-      const w = WIDTHS.find(w => w >= minPx && (img[`avif_${w}`] || img[`url_${w}`]));
-      if (w) return { avif: img[`avif_${w}`] || null, webp: img[`url_${w}`] || null };
-      // image too small for minPx — use largest available ladder entry
-      for (const fw of [...WIDTHS].reverse()) {
-        if (img[`avif_${fw}`] || img[`url_${fw}`]) return { avif: img[`avif_${fw}`] || null, webp: img[`url_${fw}`] || null };
-      }
-      return { avif: null, webp: null };
-    }
 
     const fit = bestUrl(cur, fitPx);
-    setDisplayAvif(fit.avif);
-    setDisplayWebp(fit.webp || null);
-    setDisplaySrc(cur.url);
-
     const zoom = bestUrl(cur, zoomPx);
+    const zoomSrc = zoom.avif || zoom.webp || cur.url;
+
     let cancelled = false;
 
-    function applyUpgrade(avif, webp) {
-      if (cancelled) return;
-      if (zoomedRef.current && imgRef.current) {
-        const w = imgRef.current.offsetWidth;
-        if (w > 0) setLockedWidth(w);
+    if (isNav) {
+      // Navigation: pre-decode zoom (preloaded by previous effect) then apply all state atomically.
+      // Old image stays visible during decode — near-instant for preloaded images.
+      // No element remount means no blank frame; browser paints new image in the same frame as state update.
+      const preImg = new Image();
+      preImg.src = zoomSrc;
+      preImg.decode()
+        .then(() => {
+          if (cancelled) return;
+          setZoomed(false);
+          setLockedWidth(null);
+          setFitStyle(fitStyleValue);
+          setDisplayAvif(zoom.avif);
+          setDisplayWebp(zoom.webp || null);
+          setDisplaySrc(cur.url);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          if (zoom.webp && zoomSrc !== zoom.webp) {
+            const wb = new Image();
+            wb.src = zoom.webp;
+            wb.decode()
+              .then(() => {
+                if (cancelled) return;
+                setZoomed(false);
+                setLockedWidth(null);
+                setFitStyle(fitStyleValue);
+                setDisplayAvif(null);
+                setDisplayWebp(zoom.webp);
+                setDisplaySrc(cur.url);
+              })
+              .catch(() => {
+                if (cancelled) return;
+                setZoomed(false);
+                setLockedWidth(null);
+                setFitStyle(fitStyleValue);
+                setDisplayAvif(fit.avif);
+                setDisplayWebp(fit.webp || null);
+                setDisplaySrc(cur.url);
+              });
+          } else {
+            setZoomed(false);
+            setLockedWidth(null);
+            setFitStyle(fitStyleValue);
+            setDisplayAvif(fit.avif);
+            setDisplayWebp(fit.webp || null);
+            setDisplaySrc(cur.url);
+          }
+        });
+    } else {
+      // Initial open: show fit immediately, upgrade to zoom async
+      setZoomed(false);
+      setLockedWidth(null);
+      setFitStyle(fitStyleValue);
+      setDisplayAvif(fit.avif);
+      setDisplayWebp(fit.webp || null);
+      setDisplaySrc(cur.url);
+
+      function applyUpgrade(avif, webp) {
+        if (cancelled) return;
+        if (zoomedRef.current && imgRef.current) {
+          const w = imgRef.current.offsetWidth;
+          if (w > 0) setLockedWidth(w);
+        }
+        setDisplayAvif(avif);
+        setDisplayWebp(webp);
       }
-      setDisplayAvif(avif);
-      setDisplayWebp(webp);
+
+      const upgradeImg = new Image();
+      upgradeImg.src = zoomSrc;
+      upgradeImg.decode()
+        .then(() => applyUpgrade(zoom.avif, zoom.webp || null))
+        .catch(() => {
+          if (cancelled || !zoom.webp || zoomSrc === zoom.webp) return;
+          const fbImg = new Image();
+          fbImg.src = zoom.webp;
+          fbImg.decode().then(() => applyUpgrade(null, zoom.webp)).catch(() => {});
+        });
     }
 
-    const upgradeSrc = zoom.avif || zoom.webp || cur.url;
-    const upgradeImg = new Image();
-    upgradeImg.src = upgradeSrc;
-    upgradeImg.decode()
-      .then(() => applyUpgrade(zoom.avif, zoom.webp || null))
-      .catch(() => {
-        if (cancelled || !zoom.webp || upgradeSrc === zoom.webp) return;
-        const fbImg = new Image();
-        fbImg.src = zoom.webp;
-        fbImg.decode().then(() => applyUpgrade(null, zoom.webp)).catch(() => {});
-      });
-
-    // Preload neighbours at zoom size
+    // Pre-decode neighbours so the next nav can apply state without waiting for decode
     [idx - 1, idx + 1].forEach(i => {
-      if (i >= 0 && i < images.length) {
-        const adj = images[i];
-        const adjZoom = bestUrl(adj, zoomPx);
-        new Image().src = adjZoom.avif || adjZoom.webp || adj.url;
-      }
+      if (i < 0 || i >= images.length) return;
+      const adj = images[i];
+      const adjZoom = bestUrl(adj, zoomPx);
+      const preImg = new Image();
+      preImg.src = adjZoom.avif || adjZoom.webp || adj.url;
+      preImg.decode().catch(() => {
+        if (adjZoom.webp && adjZoom.avif) {
+          const wb = new Image();
+          wb.src = adjZoom.webp;
+          wb.decode().catch(() => {});
+        }
+      });
     });
+
     return () => { cancelled = true; };
   }, [idx, images]);
 
@@ -108,10 +172,6 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
       container.scrollTop = Math.max(0, img.offsetTop + naturalY - container.clientHeight / 2);
     });
   }, [zoomed]);
-
-  // UPGRADE_STRETCH: true = fit image stretched to final size (blurry then sharp)
-  //                  false = fit image at natural size, snaps to final size on upgrade
-  const UPGRADE_STRETCH = true;
 
   const appliedFitStyle = fitStyle || { maxHeight: "92vh", maxWidth: "90vw", objectFit: "contain" };
 
@@ -197,13 +257,13 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
       )}
 
       {(displayAvif || displayWebp) ? (
-        <picture key={idx}>
+        <picture>
           {displayAvif && <source type="image/avif" srcSet={displayAvif} />}
           {displayWebp && <source type="image/webp" srcSet={displayWebp} />}
           <img ref={imgRef} src={undefined} alt="" onClick={onImgClick} style={imgStyle} decoding="async" />
         </picture>
       ) : (
-        <img key={idx} ref={imgRef} src={displaySrc} alt="" onClick={onImgClick} style={imgStyle} decoding="async" />
+        <img ref={imgRef} src={displaySrc} alt="" onClick={onImgClick} style={imgStyle} decoding="async" />
       )}
 
       {multi && (
