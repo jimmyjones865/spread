@@ -31,7 +31,7 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
       if (w) return { avif: img[`avif_${w}`] || null, webp: img[`url_${w}`] || null };
       // image too small for minPx — use largest available ladder entry
       for (const fw of [...WIDTHS].reverse()) {
-        if (img[`url_${fw}`]) return { avif: img[`avif_${fw}`] || null, webp: img[`url_${fw}`] };
+        if (img[`avif_${fw}`] || img[`url_${fw}`]) return { avif: img[`avif_${fw}`] || null, webp: img[`url_${fw}`] || null };
       }
       return { avif: null, webp: null };
     }
@@ -46,9 +46,11 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
     const upgradeImg = new Image();
     upgradeImg.onload = () => {
       if (cancelled) return;
-      setDisplayAvif(zoom.avif);
-      setDisplayWebp(zoom.webp || null);
-      setDisplaySrc(cur.url);
+      if (zoom.avif || zoom.webp) {
+        setDisplayAvif(zoom.avif);
+        setDisplayWebp(zoom.webp || null);
+        setDisplaySrc(cur.url);
+      }
     };
     upgradeImg.onerror = () => {
       if (cancelled || !zoom.webp) return;
