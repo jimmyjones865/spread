@@ -42,19 +42,26 @@ def _ladder_urls(book_id: int, filename: str) -> dict:
     return result
 
 
+def _cover_urls(book_id: int, filename: str) -> dict:
+    stem = filename[:-4]
+    disk = DATA_DIR / str(book_id)
+    base = f"/images/{book_id}/{stem}"
+    result = {}
+    for w in (400, 800):
+        result[f"cover_webp_{w}"] = f"{base}_{w}.webp" if (disk / f"{stem}_{w}.webp").exists() else None
+        result[f"cover_avif_{w}"] = f"{base}_{w}.avif" if (disk / f"{stem}_{w}.avif").exists() else None
+    return result
+
+
 def _book_list_item(book: Book, artist_name: str, artist_slug: str) -> dict:
     cover_img = _cover_image(book)
     cover_url = cover_webp_url = None
-    cover_webp_400 = cover_avif_400 = cover_webp_800 = cover_avif_800 = None
+    cover_variants = {}
     if cover_img:
         stem = cover_img.filename[:-4]
         cover_url = f"/images/{book.id}/{stem}_thumb.jpg"
         cover_webp_url = f"/images/{book.id}/{stem}_thumb.webp"
-        disk = DATA_DIR / str(book.id)
-        cover_webp_400 = f"/images/{book.id}/{stem}_400.webp" if (disk / f"{stem}_400.webp").exists() else None
-        cover_avif_400 = f"/images/{book.id}/{stem}_400.avif" if (disk / f"{stem}_400.avif").exists() else None
-        cover_webp_800 = f"/images/{book.id}/{stem}_800.webp" if (disk / f"{stem}_800.webp").exists() else None
-        cover_avif_800 = f"/images/{book.id}/{stem}_800.avif" if (disk / f"{stem}_800.avif").exists() else None
+        cover_variants = _cover_urls(book.id, cover_img.filename)
     return {
         "slug": book.slug,
         "title": book.title,
@@ -68,10 +75,7 @@ def _book_list_item(book: Book, artist_name: str, artist_slug: str) -> dict:
         "artist_slug": artist_slug,
         "cover_url": cover_url,
         "cover_webp_url": cover_webp_url,
-        "cover_webp_400": cover_webp_400,
-        "cover_avif_400": cover_avif_400,
-        "cover_webp_800": cover_webp_800,
-        "cover_avif_800": cover_avif_800,
+        **cover_variants,
         "tags": [t.name for t in book.tags],
     }
 

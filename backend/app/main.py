@@ -23,7 +23,7 @@ from app.auth import (
     verify_password, create_session_token, require_admin,
     SESSION_COOKIE, SESSION_MAX_AGE, log_login,
 )
-from app.routers.admin import artists, books, tags, pages, footer, scrape, image_meta
+from app.routers.admin import artists, books, books_images, books_links, tags, pages, footer, scrape, image_meta
 from app.routers import public
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
@@ -72,6 +72,8 @@ COOKIE_SECURE = os.getenv("COOKIE_SECURE", "true").lower() != "false"
 
 app.include_router(artists.router)
 app.include_router(books.router)
+app.include_router(books_images.router)
+app.include_router(books_links.router)
 app.include_router(tags.router)
 app.include_router(pages.router)
 app.include_router(footer.router)
