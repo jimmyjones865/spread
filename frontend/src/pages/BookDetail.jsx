@@ -88,7 +88,8 @@ export default function BookDetail() {
     const avifSrcset = makeSrcset([
       img.avif_400 && `${img.avif_400} 400w`,
       img.avif_800 && `${img.avif_800} 800w`,
-      img.avif_1200 && `${img.avif_1200} 1200w`,
+      img.avif_1300 && `${img.avif_1300} 1300w`,
+      img.avif_1500 && `${img.avif_1500} 1500w`,
       img.avif_2000 && `${img.avif_2000} 2000w`,
       img.avif_3000 && `${img.avif_3000} 3000w`,
       img.avif_4000 && `${img.avif_4000} 4000w`,
@@ -96,7 +97,8 @@ export default function BookDetail() {
     const webpSrcset = makeSrcset([
       img.url_400 && `${img.url_400} 400w`,
       img.url_800 && `${img.url_800} 800w`,
-      img.url_1200 && `${img.url_1200} 1200w`,
+      img.url_1300 && `${img.url_1300} 1300w`,
+      img.url_1500 && `${img.url_1500} 1500w`,
       img.url_2000 && `${img.url_2000} 2000w`,
       img.url_3000 && `${img.url_3000} 3000w`,
       img.url_4000 && `${img.url_4000} 4000w`,

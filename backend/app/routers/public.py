@@ -14,7 +14,7 @@ router = APIRouter()
 SITE_TITLE = os.getenv("SITE_TITLE", "Spread")
 IMAGE_MAX_WIDTH = int(os.getenv("IMAGE_MAX_WIDTH", "900"))
 DATA_DIR = Path("/data/images")
-LADDER_WIDTHS = [400, 800, 1200, 2000, 3000, 4000]
+LADDER_WIDTHS = [400, 800, 1300, 1500, 2000, 3000, 4000]
 
 
 def _is_admin(request: Request) -> bool:

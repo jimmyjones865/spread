@@ -24,7 +24,7 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
     const sizesPx = window.innerWidth < 768 ? window.innerWidth : 900;
     const fitPx = sizesPx * dpr;
     const zoomPx = fitPx * 2;
-    const WIDTHS = [400, 800, 1200, 2000, 3000, 4000];
+    const WIDTHS = [400, 800, 1300, 1500, 2000, 3000, 4000];
 
     function bestUrl(img, minPx) {
       const w = WIDTHS.find(w => w >= minPx && (img[`avif_${w}`] || img[`url_${w}`]));

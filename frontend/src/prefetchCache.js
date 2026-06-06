@@ -14,8 +14,8 @@ export function prefetchBook(slug) {
     const img = data?.images?.[0];
     const dpr = window.devicePixelRatio || 1;
     const url = dpr >= 2
-      ? (img?.avif_2000 || img?.url_2000 || img?.avif_1200 || img?.url_1200)
-      : (img?.avif_1200 || img?.url_1200 || img?.avif_800 || img?.url_800);
+      ? (img?.avif_2000 || img?.url_2000 || img?.avif_1500 || img?.url_1500)
+      : (img?.avif_1300 || img?.url_1300 || img?.avif_800 || img?.url_800);
     if (url) new Image().src = url;
   });
 }
