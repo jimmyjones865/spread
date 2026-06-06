@@ -8,6 +8,7 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
   const [displayWebp, setDisplayWebp] = useState(null);
   const [displaySrc, setDisplaySrc] = useState(null);
   const [lockedWidth, setLockedWidth] = useState(null);
+  const [fitStyle, setFitStyle] = useState(null);
   const containerRef = useRef(null);
   const imgRef = useRef(null);
   const clickRatioRef = useRef(null);
@@ -22,6 +23,18 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
     setZoomed(false);
     setLockedWidth(null);
     const cur = images[idx];
+
+    // Calculate fitStyle in effect so it updates in sync with display sources
+    let fitStyleValue;
+    if (UPGRADE_STRETCH && cur?.width && cur?.height) {
+      const maxW = window.innerWidth;
+      const maxH = window.innerHeight;
+      const scale = Math.min(maxW / cur.width, maxH / cur.height, 1);
+      fitStyleValue = { width: Math.round(cur.width * scale) + "px", height: Math.round(cur.height * scale) + "px" };
+    } else {
+      fitStyleValue = { maxHeight: "92vh", maxWidth: "90vw", objectFit: "contain" };
+    }
+    setFitStyle(fitStyleValue);
 
     // Pick ladder URL matching what the detail view would cache at this viewport/DPR.
     // detail sizes: "(min-width: 768px) 900px, 100vw" — mirror that here.
@@ -100,16 +113,7 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
   //                  false = fit image at natural size, snaps to final size on upgrade
   const UPGRADE_STRETCH = true;
 
-  const cur = images[idx];
-  let fitStyle;
-  if (UPGRADE_STRETCH && cur?.width && cur?.height) {
-    const maxW = window.innerWidth;
-    const maxH = window.innerHeight;
-    const scale = Math.min(maxW / cur.width, maxH / cur.height, 1);
-    fitStyle = { width: Math.round(cur.width * scale) + "px", height: Math.round(cur.height * scale) + "px" };
-  } else {
-    fitStyle = { maxHeight: "92vh", maxWidth: "90vw", objectFit: "contain" };
-  }
+  const appliedFitStyle = fitStyle || { maxHeight: "92vh", maxWidth: "90vw", objectFit: "contain" };
 
   const imgStyle = {
     display: "block",
@@ -117,7 +121,7 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
     cursor: zoomed ? "zoom-out" : "zoom-in",
     ...(zoomed
       ? { width: lockedWidth ? `${lockedWidth}px` : "auto", height: "auto", maxWidth: "none", maxHeight: "none", margin: "3.5rem auto 2rem" }
-      : fitStyle
+      : appliedFitStyle
     ),
   };
 
