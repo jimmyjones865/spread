@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { nativeDisplaySize } from "../utils/nativeDisplaySize";
 
 const WIDTHS = [400, 800, 1300, 1500, 2000, 3000, 4000];
@@ -99,7 +99,7 @@ export default function useLightbox(images, idx, onPrev, onNext) {
     instantRef.current = false;
   }, [zoomed, pinchScale]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const cur = images[idx];
     const isNav = hasLoadedRef.current;
     hasLoadedRef.current = true;
