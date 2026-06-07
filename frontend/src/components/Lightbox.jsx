@@ -40,6 +40,7 @@ function resolveDisplay(best, rawUrl) {
 
 export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
   const [zoomed, setZoomed] = useState(false);
+  const [zoomOverflows, setZoomOverflows] = useState(false);
   const [displayAvif, setDisplayAvif] = useState(null);
   const [displayWebp, setDisplayWebp] = useState(null);
   const [displaySrc, setDisplaySrc] = useState(null);
@@ -220,15 +221,25 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
     }
   }
 
+  // Zoom always shows the image at 1:1 (native pixel size). Whether that overflows the
+  // viewport is just a fact about this image — it decides the positioning strategy, not
+  // whether zooming "is allowed": if it fits, center it like the fit view; if it overflows,
+  // anchor top-left and scroll so the focal point (rx, ry) lands at the viewport center.
+  function startZoom(rx, ry) {
+    const img = imgRef.current;
+    const container = containerRef.current;
+    if (!img || !container) return;
+    const overflows = img.naturalWidth > container.clientWidth || img.naturalHeight > container.clientHeight;
+    clickRatioRef.current = overflows ? { rx, ry } : null;
+    setZoomOverflows(overflows);
+    setZoomed(true);
+  }
+
   const onImgClick = e => {
     e.stopPropagation();
     if (!zoomed) {
       const rect = e.currentTarget.getBoundingClientRect();
-      clickRatioRef.current = {
-        rx: (e.clientX - rect.left) / rect.width,
-        ry: (e.clientY - rect.top) / rect.height,
-      };
-      setZoomed(true);
+      startZoom((e.clientX - rect.left) / rect.width, (e.clientY - rect.top) / rect.height);
     } else {
       setLockedWidth(null);
       setZoomed(false);
@@ -245,9 +256,9 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
         position: "fixed", inset: 0, zIndex: 200,
         background: "rgba(0,0,0,0.93)",
         display: "flex",
-        alignItems: zoomed ? "flex-start" : "center",
-        justifyContent: zoomed ? "flex-start" : "center",
-        overflow: zoomed ? "auto" : "hidden",
+        alignItems: zoomed && zoomOverflows ? "flex-start" : "center",
+        justifyContent: zoomed && zoomOverflows ? "flex-start" : "center",
+        overflow: zoomed && zoomOverflows ? "auto" : "hidden",
       }}
     >
       <div
@@ -261,7 +272,15 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
         )}
         <div style={{ position: "absolute", right: "1.25rem", display: "flex", gap: "0.75rem", pointerEvents: "all" }}>
           <button
-            onClick={e => { e.stopPropagation(); if (zoomed) setLockedWidth(null); setZoomed(z => !z); }}
+            onClick={e => {
+              e.stopPropagation();
+              if (zoomed) {
+                setLockedWidth(null);
+                setZoomed(false);
+              } else {
+                startZoom(0.5, 0.5);
+              }
+            }}
             style={topBtn}
             title={zoomed ? "Fit to screen" : "100% zoom"}
           >
