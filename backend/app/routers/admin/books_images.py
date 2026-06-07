@@ -110,7 +110,7 @@ def rotate_image(book_id: int, img_id: int, db: Session = Depends(get_db)):
         raise HTTPException(404, detail="Image file not found")
 
     pil = PILImage.open(io.BytesIO(path.read_bytes()))
-    rotated = pil.rotate(-90, expand=True)
+    rotated = pil.rotate(90, expand=True)
 
     out = io.BytesIO()
     rotated.save(out, format="JPEG", quality=92)
