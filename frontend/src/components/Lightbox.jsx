@@ -40,7 +40,8 @@ function resolveDisplay(best, rawUrl) {
 
 export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
   const [zoomed, setZoomed] = useState(false);
-  const [zoomOverflows, setZoomOverflows] = useState(false);
+  const [zoomOverflowsX, setZoomOverflowsX] = useState(false);
+  const [zoomOverflowsY, setZoomOverflowsY] = useState(false);
   const [displayAvif, setDisplayAvif] = useState(null);
   const [displayWebp, setDisplayWebp] = useState(null);
   const [displaySrc, setDisplaySrc] = useState(null);
@@ -188,8 +189,15 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
     requestAnimationFrame(() => {
       const naturalX = rx * img.naturalWidth;
       const naturalY = ry * img.naturalHeight;
-      container.scrollLeft = Math.max(0, naturalX - container.clientWidth / 2);
-      container.scrollTop = Math.max(0, img.offsetTop + naturalY - container.clientHeight / 2);
+      // Only scroll axes that actually overflow — the other axis is centered via flex
+      // alignment and has no scrollable range (assigning scrollLeft/Top there is a no-op
+      // at best, but skipping it keeps the intent explicit).
+      if (img.naturalWidth > container.clientWidth) {
+        container.scrollLeft = Math.max(0, naturalX - container.clientWidth / 2);
+      }
+      if (img.naturalHeight > container.clientHeight) {
+        container.scrollTop = Math.max(0, img.offsetTop + naturalY - container.clientHeight / 2);
+      }
     });
   }, [zoomed]);
 
@@ -223,15 +231,19 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
 
   // Zoom always shows the image at 1:1 (native pixel size). Whether that overflows the
   // viewport is just a fact about this image — it decides the positioning strategy, not
-  // whether zooming "is allowed": if it fits, center it like the fit view; if it overflows,
-  // anchor top-left and scroll so the focal point (rx, ry) lands at the viewport center.
+  // whether zooming "is allowed". Each axis is judged independently: a portrait image at
+  // 1:1 may overflow vertically while still being narrower than the viewport — that axis
+  // should stay centered, not anchored left. Only an overflowing axis gets top/left
+  // anchoring + scroll-to-focal-point; a fitting axis is centered like the fit view.
   function startZoom(rx, ry) {
     const img = imgRef.current;
     const container = containerRef.current;
     if (!img || !container) return;
-    const overflows = img.naturalWidth > container.clientWidth || img.naturalHeight > container.clientHeight;
-    clickRatioRef.current = overflows ? { rx, ry } : null;
-    setZoomOverflows(overflows);
+    const overflowsX = img.naturalWidth > container.clientWidth;
+    const overflowsY = img.naturalHeight > container.clientHeight;
+    clickRatioRef.current = (overflowsX || overflowsY) ? { rx, ry } : null;
+    setZoomOverflowsX(overflowsX);
+    setZoomOverflowsY(overflowsY);
     setZoomed(true);
   }
 
@@ -256,9 +268,10 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
         position: "fixed", inset: 0, zIndex: 200,
         background: "rgba(0,0,0,0.93)",
         display: "flex",
-        alignItems: zoomed && zoomOverflows ? "flex-start" : "center",
-        justifyContent: zoomed && zoomOverflows ? "flex-start" : "center",
-        overflow: zoomed && zoomOverflows ? "auto" : "hidden",
+        // default flex-direction: row → justifyContent = horizontal (X), alignItems = vertical (Y)
+        justifyContent: zoomed && zoomOverflowsX ? "flex-start" : "center",
+        alignItems: zoomed && zoomOverflowsY ? "flex-start" : "center",
+        overflow: zoomed && (zoomOverflowsX || zoomOverflowsY) ? "auto" : "hidden",
       }}
     >
       <div
