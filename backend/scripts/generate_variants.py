@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""One-time script: generate _thumb/_web/_zoom variants for all existing images."""
+"""One-time script: generate WebP+AVIF ladder variants for all existing images."""
 import os
 import sys
 from pathlib import Path
@@ -17,23 +17,23 @@ def main():
     db = SessionLocal()
     try:
         images = db.query(BookImage).all()
-        print(f"Processing {len(images)} images…")
+        total = len(images)
+        print(f"Processing {total} images…", flush=True)
         ok = skipped = errors = 0
-        for img in images:
+        for i, img in enumerate(images, 1):
             path = IMAGE_DIR / str(img.book_id) / img.filename
             if not path.exists():
-                print(f"  SKIP  {img.filename} (file not found)")
+                print(f"  [{i}/{total}] SKIP {img.filename} (file not found)", flush=True)
                 skipped += 1
                 continue
             try:
                 generate_variants(path.read_bytes(), path.parent, img.filename[:-4])
+                print(f"  [{i}/{total}] OK {img.filename}", flush=True)
                 ok += 1
-                if ok % 10 == 0:
-                    print(f"  {ok}/{len(images)}…")
             except Exception as e:
-                print(f"  ERROR {img.filename}: {e}")
+                print(f"  [{i}/{total}] ERROR {img.filename}: {e}", flush=True)
                 errors += 1
-        print(f"Done. {ok} generated, {skipped} skipped, {errors} errors.")
+        print(f"\nDone: {ok} ok, {skipped} skipped, {errors} errors", flush=True)
     finally:
         db.close()
 
