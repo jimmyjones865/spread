@@ -87,9 +87,17 @@ export default function useLightbox(images, idx, onPrev, onNext) {
   const panRef = useRef(null);
   const zoomedRef = useRef(false);
   const hasLoadedRef = useRef(false);
+  // Suppresses the fit view's transform transition for one render — set by click-driven
+  // "snap to fit" actions (exitZoom/resetPinchZoom) so they jump instantly. Left enabled
+  // for the natural pinch-release spring-back, which should animate smoothly.
+  const instantRef = useRef(false);
   const multi = images.length > 1;
 
   zoomedRef.current = zoomed;
+
+  useEffect(() => {
+    instantRef.current = false;
+  }, [zoomed, pinchScale]);
 
   useEffect(() => {
     const cur = images[idx];
@@ -278,7 +286,7 @@ export default function useLightbox(images, idx, onPrev, onNext) {
       : {
           ...appliedFitStyle,
           transform: `translate(${pinchOffset.x}px, ${pinchOffset.y}px) scale(${pinchScale})`,
-          transition: (pinchRef.current || panRef.current) ? "none" : "transform 0.2s ease",
+          transition: (pinchRef.current || panRef.current || instantRef.current) ? "none" : "transform 0.2s ease",
         }
     ),
   };
@@ -364,6 +372,7 @@ export default function useLightbox(images, idx, onPrev, onNext) {
   }
 
   function exitZoom() {
+    instantRef.current = true;
     setLockedWidth(null);
     setPinchOffset({ x: 0, y: 0 });
     setZoomed(false);
@@ -372,6 +381,7 @@ export default function useLightbox(images, idx, onPrev, onNext) {
   // Pinch-zoom has no "Fit" state of its own (it's a transient transform on top of the fit
   // view) — resetting it just clears the gesture state back to scale 1 / no offset.
   function resetPinchZoom() {
+    instantRef.current = true;
     pinchRef.current = null;
     panRef.current = null;
     setPinchScale(1);
