@@ -97,6 +97,9 @@ export default function useLightbox(images, idx, onPrev, onNext) {
   // "snap to fit" actions (exitZoom/resetPinchZoom) so they jump instantly. Left enabled
   // for the natural pinch-release spring-back, which should animate smoothly.
   const instantRef = useRef(false);
+  // Mirror of pinchScale for the wheel-zoom listener (which is mounted once and would
+  // otherwise close over a stale state value).
+  const pinchScaleRef = useRef(1);
   const multi = images.length > 1;
 
   zoomedRef.current = zoomed;
@@ -282,12 +285,15 @@ export default function useLightbox(images, idx, onPrev, onNext) {
     }
 
     // Warm the decode cache for neighbours at both resolutions — whichever wins the race on next nav.
-    [idx - 1, idx + 1].forEach(i => {
-      if (i < 0 || i >= images.length) return;
-      const adj = images[i];
+    // ±2 covers the two-step skip on the arrow keys and the two-step swipes.
+    for (let offset = -2; offset <= 2; offset++) {
+      if (offset === 0) continue;
+      const k = idx + offset;
+      if (k < 0 || k >= images.length) continue;
+      const adj = images[k];
       resolveDisplay(bestUrl(adj, fitPx), adj.url);
       resolveDisplay(bestUrl(adj, zoomPx), adj.url);
-    });
+    }
 
     return () => { cancelled = true; };
   }, [idx, images]);
@@ -313,13 +319,20 @@ export default function useLightbox(images, idx, onPrev, onNext) {
         e.preventDefault();
         const [a, b] = e.touches;
         const { startDist, startScale, startMid, startOffset } = pinchRef.current;
-        const scale = Math.min(4, Math.max(1, startScale * (touchDist(a, b) / startDist)));
+        // Rubber-band: allow the scale to overshoot [1, 4] by a third of the raw delta.
+        // Hard cap at [0.7, 4.3] so a wild pinch can't fling the image to 10x.
+        // On release, handleTouchEnd snaps back to 1 (under) or 4 (over).
+        const raw = startScale * (touchDist(a, b) / startDist);
+        let scale = raw;
+        if (raw < 1) scale = 1 + (raw - 1) * 0.3;
+        else if (raw > 4) scale = 4 + (raw - 4) * 0.3;
+        scale = Math.max(0.7, Math.min(4.3, scale));
         const mid = touchMid(a, b);
-        const raw = scale > 1
+        const offsetRaw = scale > 1
           ? { x: startOffset.x + (mid.x - startMid.x), y: startOffset.y + (mid.y - startMid.y) }
           : { x: 0, y: 0 };
         setPinchScale(scale);
-        setPinchOffset(clampPanOffset(raw, scale, el));
+        setPinchOffset(clampPanOffset(offsetRaw, scale, el));
         return;
       }
 
@@ -333,6 +346,30 @@ export default function useLightbox(images, idx, onPrev, onNext) {
     }
     el.addEventListener("touchmove", onTouchMove, { passive: false });
     return () => el.removeEventListener("touchmove", onTouchMove);
+  }, []);
+
+  // Mirror pinchScale into a ref so the once-mounted wheel listener can read the
+  // current value without re-attaching on every change.
+  useEffect(() => { pinchScaleRef.current = pinchScale; }, [pinchScale]);
+
+  // Wheel zoom (desktop): ctrl+wheel / cmd+wheel zooms the fit view, multiplicative like
+  // pinch (deltaY sign matters: scroll up = zoom in). preventDefault stops the page from
+  // scrolling. Resets pan on a full zoom-out (scale hits 1) so the image is centered.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    function onWheel(e) {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const factor = Math.exp(-e.deltaY * 0.002);
+      const next = pinchScaleRef.current * factor;
+      const clamped = Math.max(1, Math.min(4, next));
+      pinchScaleRef.current = clamped;
+      setPinchScale(clamped);
+      if (clamped === 1) setPinchOffset({ x: 0, y: 0 });
+    }
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
   }, []);
 
   const appliedFitStyle = fitStyle || DEFAULT_FIT_STYLE;
@@ -401,6 +438,9 @@ export default function useLightbox(images, idx, onPrev, onNext) {
       if (pinchScale <= 1) {
         setPinchScale(1);
         setPinchOffset({ x: 0, y: 0 });
+      } else if (pinchScale > 4) {
+        // Spring back from rubber-band over-zoom.
+        setPinchScale(4);
       } else {
         // Force a re-render so `transition` re-enables (was "none" mid-gesture, ref-driven).
         setPinchOffset(o => ({ ...o }));
