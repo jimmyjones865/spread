@@ -271,8 +271,9 @@ export default function useLightbox(images, idx, onPrev, onNext) {
     ...(zoomed
       ? {
           width: lockedWidth ? `${lockedWidth}px` : "auto", height: "auto", maxWidth: "none", maxHeight: "none", margin: "3.5rem auto 2rem",
+          // No transition: the offset is always clamped during drag (never overshoots),
+          // so there's no spring-back to animate — entering/exiting zoom should snap, not slide.
           transform: `translate(${pinchOffset.x}px, ${pinchOffset.y}px)`,
-          transition: panRef.current ? "none" : "transform 0.2s ease",
         }
       : {
           ...appliedFitStyle,
