@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { nativeDisplaySize, WIDTHS } from "../utils/nativeDisplaySize";
 
 // UPGRADE_STRETCH: true = fit image stretched to final display size (blurry→sharp on initial open)
@@ -75,11 +75,19 @@ export default function useLightbox(images, idx, onPrev, onNext) {
   const [displayWebp, setDisplayWebp] = useState(null);
   const [displaySrc, setDisplaySrc] = useState(null);
   const [lockedWidth, setLockedWidth] = useState(null);
-  const [fitStyle, setFitStyle] = useState(null);
   const [pinchScale, setPinchScale] = useState(1);
   const [pinchOffset, setPinchOffset] = useState({ x: 0, y: 0 });
+  // Resize: bumping viewportKey recomputes fitStyle (and clears lockedWidth, which is in
+  // pixels and stale across viewport changes — rotate-the-phone-in-1:1-zoom fix).
+  const [viewportKey, setViewportKey] = useState(0);
+  // prefers-reduced-motion: when on, the fit-view transform transition is suppressed.
+  const [reducedMotion, setReducedMotion] = useState(false);
+  // Idle fade: chrome (counter, side arrows) dims to a hint after IDLE_MS with no input.
+  // Close button stays at full opacity — it's the escape hatch.
+  const [idle, setIdle] = useState(false);
   const containerRef = useRef(null);
   const imgRef = useRef(null);
+  const closeButtonRef = useRef(null);
   const touchStartX = useRef(null);
   const touchStartY = useRef(null);
   const pinchRef = useRef(null);
@@ -94,9 +102,81 @@ export default function useLightbox(images, idx, onPrev, onNext) {
 
   zoomedRef.current = zoomed;
 
+  // fitStyle is a pure function of (image dimensions, viewport size). Derived via useMemo
+  // (not useState + setFitStyle in the big effect) so it updates on viewport resize without
+  // re-running the decode/upgrade effect — that effect handles display state, not sizing.
+  const fitStyle = useMemo(() => {
+    const cur = images[idx];
+    if (!UPGRADE_STRETCH || !cur?.width || !cur?.height) return null;
+    const maxW = window.innerWidth;
+    const maxH = window.innerHeight;
+    const { width: nativeW, height: nativeH } = nativeDisplaySize(cur);
+    const scale = Math.min(maxW / nativeW, maxH / nativeH, 1);
+    return { width: Math.round(nativeW * scale) + "px", height: Math.round(nativeH * scale) + "px" };
+    // viewportKey is bumped by the resize listener; reading it here makes the memo
+    // recompute on every viewport change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [images, idx, viewportKey]);
+
   useEffect(() => {
     instantRef.current = false;
   }, [zoomed, pinchScale]);
+
+  // Viewport resize: bump viewportKey (recomputes fitStyle via the memo) and clear
+  // lockedWidth — it's a pixel measurement from the old viewport and is meaningless after
+  // a resize (the user sees a fresh "1:1 zoom, centered" without the stale crop).
+  useEffect(() => {
+    function onResize() {
+      setViewportKey(k => k + 1);
+      setLockedWidth(null);
+    }
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  // prefers-reduced-motion: track the user's OS-level setting and skip the fit-view
+  // transform transition when on. The instantRef mechanism still works for the click-driven
+  // snap actions, which is what reduced-motion users want regardless.
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReducedMotion(mq.matches);
+    const handler = e => setReducedMotion(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  // Idle fade: dim the chrome (counter, side arrows) after IDLE_MS with no input. Reset
+  // on touch / key / mouse activity. Window-level listeners catch activity anywhere in
+  // the lightbox. Close button keeps full opacity via the JSX.
+  useEffect(() => {
+    const IDLE_MS = 3000;
+    let timer = null;
+    function reset() {
+      setIdle(false);
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => setIdle(true), IDLE_MS);
+    }
+    reset();
+    const events = ["touchstart", "touchmove", "keydown", "mousemove"];
+    events.forEach(e => window.addEventListener(e, reset, { passive: true }));
+    return () => {
+      if (timer) clearTimeout(timer);
+      events.forEach(e => window.removeEventListener(e, reset));
+    };
+  }, []);
+
+  // Focus management: move focus to the close button on open (so keyboard users land
+  // somewhere inside the dialog), and restore focus to the previously-focused element on
+  // close (so the user returns to where they were). rAF defers the focus call to after
+  // the close button is in the DOM and focusable.
+  useEffect(() => {
+    const prev = document.activeElement;
+    const id = requestAnimationFrame(() => closeButtonRef.current?.focus());
+    return () => {
+      cancelAnimationFrame(id);
+      if (prev && typeof prev.focus === "function") prev.focus();
+    };
+  }, []);
 
   useEffect(() => {
     const cur = images[idx];
@@ -107,17 +187,6 @@ export default function useLightbox(images, idx, onPrev, onNext) {
     panRef.current = null;
     setPinchScale(1);
     setPinchOffset({ x: 0, y: 0 });
-
-    let fitStyleValue;
-    if (UPGRADE_STRETCH && cur?.width && cur?.height) {
-      const maxW = window.innerWidth;
-      const maxH = window.innerHeight;
-      const { width: nativeW, height: nativeH } = nativeDisplaySize(cur);
-      const scale = Math.min(maxW / nativeW, maxH / nativeH, 1);
-      fitStyleValue = { width: Math.round(nativeW * scale) + "px", height: Math.round(nativeH * scale) + "px" };
-    } else {
-      fitStyleValue = DEFAULT_FIT_STYLE;
-    }
 
     // detail sizes: "(min-width: 768px) 900px, 100vw" — mirror that here
     const dpr = window.devicePixelRatio || 1;
@@ -152,7 +221,6 @@ export default function useLightbox(images, idx, onPrev, onNext) {
         if (cancelled) return;
         setZoomed(false);
         setLockedWidth(null);
-        setFitStyle(fitStyleValue);
         setDisplayAvif(d.avif);
         setDisplayWebp(d.webp);
         setDisplaySrc(d.src);
@@ -188,7 +256,6 @@ export default function useLightbox(images, idx, onPrev, onNext) {
       // Initial open: show fit immediately, upgrade to zoom async
       setZoomed(false);
       setLockedWidth(null);
-      setFitStyle(fitStyleValue);
       setDisplayAvif(fit.avif);
       setDisplayWebp(fit.webp || null);
       setDisplaySrc(cur.url);
@@ -285,7 +352,7 @@ export default function useLightbox(images, idx, onPrev, onNext) {
       : {
           ...appliedFitStyle,
           transform: `translate(${pinchOffset.x}px, ${pinchOffset.y}px) scale(${pinchScale})`,
-          transition: (pinchRef.current || panRef.current || instantRef.current) ? "none" : "transform 0.2s ease",
+          transition: (pinchRef.current || panRef.current || instantRef.current || reducedMotion) ? "none" : "transform 0.2s ease",
         }
     ),
   };
@@ -387,12 +454,6 @@ export default function useLightbox(images, idx, onPrev, onNext) {
     setPinchOffset({ x: 0, y: 0 });
   }
 
-  function toggleZoom() {
-    if (zoomed) exitZoom();
-    else if (pinchScale > 1) resetPinchZoom();
-    else startZoom(0.5, 0.5);
-  }
-
   const onImgClick = e => {
     e.stopPropagation();
     if (pinchScale > 1) { resetPinchZoom(); return; }
@@ -405,12 +466,13 @@ export default function useLightbox(images, idx, onPrev, onNext) {
   };
 
   return {
-    containerRef, imgRef,
+    containerRef, imgRef, closeButtonRef,
     multi,
     zoomedIn: zoomed || pinchScale > 1,
     displayAvif, displayWebp, displaySrc,
     imgStyle,
+    idle,
     handleTouchStart, handleTouchEnd,
-    onImgClick, toggleZoom,
+    onImgClick,
   };
 }

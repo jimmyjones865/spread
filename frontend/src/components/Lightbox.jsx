@@ -1,16 +1,16 @@
 import useLightbox from "../hooks/useLightbox";
 
-const topBtn = { background: "none", border: "none", color: "rgba(255,255,255,0.55)", fontSize: "15px", cursor: "pointer", padding: "2px 4px", fontFamily: "var(--font-body)" };
+const topBtn = { background: "none", border: "none", color: "rgba(255,255,255,0.85)", fontSize: "15px", cursor: "pointer", padding: "2px 4px", fontFamily: "var(--font-body)", transition: "opacity 0.2s" };
 
 export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
   const {
-    containerRef, imgRef,
+    containerRef, imgRef, closeButtonRef,
     multi,
-    zoomedIn,
     displayAvif, displayWebp, displaySrc,
     imgStyle,
+    idle,
     handleTouchStart, handleTouchEnd,
-    onImgClick, toggleZoom,
+    onImgClick,
   } = useLightbox(images, idx, onPrev, onNext);
 
   return (
@@ -19,6 +19,9 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
       onClick={onClose}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Image viewer"
       style={{
         position: "fixed", inset: 0, zIndex: 200,
         background: "rgba(0,0,0,0.93)",
@@ -33,24 +36,26 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
         style={{ position: "fixed", top: 0, left: 0, right: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "0.9rem 1.25rem", pointerEvents: "none" }}
       >
         {multi && (
-          <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)", letterSpacing: "0.05em" }}>
+          <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)", letterSpacing: "0.05em", transition: "opacity 0.2s", opacity: idle ? 0.15 : 1 }}>
             {idx + 1} / {images.length}
           </span>
         )}
         <div style={{ position: "absolute", right: "1.25rem", display: "flex", gap: "0.75rem", pointerEvents: "all" }}>
           <button
-            onClick={e => { e.stopPropagation(); toggleZoom(); }}
-            style={topBtn}
-            title={zoomedIn ? "Fit to screen" : "100% zoom"}
-          >
-            {zoomedIn ? "Fit" : "1:1"}
-          </button>
-          <button onClick={e => { e.stopPropagation(); onClose(); }} style={{ ...topBtn, fontSize: "20px" }}>×</button>
+            ref={closeButtonRef}
+            onClick={e => { e.stopPropagation(); onClose(); }}
+            style={{ ...topBtn, fontSize: "20px" }}
+            aria-label="Close image viewer"
+          >×</button>
         </div>
       </div>
 
       {multi && (
-        <button onClick={e => { e.stopPropagation(); onPrev(); }} style={arrowBtn("left")}>‹</button>
+        <button
+          onClick={e => { e.stopPropagation(); onPrev(); }}
+          style={arrowBtn("left", idle)}
+          aria-label="Previous image"
+        >‹</button>
       )}
 
       {(displayAvif || displayWebp) ? (
@@ -64,13 +69,17 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
       )}
 
       {multi && (
-        <button onClick={e => { e.stopPropagation(); onNext(); }} style={arrowBtn("right")}>›</button>
+        <button
+          onClick={e => { e.stopPropagation(); onNext(); }}
+          style={arrowBtn("right", idle)}
+          aria-label="Next image"
+        >›</button>
       )}
     </div>
   );
 }
 
-function arrowBtn(side) {
+function arrowBtn(side, idle) {
   return {
     position: "fixed",
     [side]: "1.25rem",
@@ -85,5 +94,7 @@ function arrowBtn(side) {
     lineHeight: 1,
     padding: "0 0.5rem",
     userSelect: "none",
+    transition: "opacity 0.2s",
+    opacity: idle ? 0.15 : 1,
   };
 }
