@@ -34,6 +34,19 @@ function clampPanOffset(offset, scale, container) {
   };
 }
 
+// 1:1 zoom renders the image at its native pixel size via explicit width/height (no
+// transform: scale, so offsetWidth IS the rendered size) — overflow per axis is half
+// the difference between that native size and the viewport, the natural pan limit.
+function clampZoomPanOffset(offset, img, container) {
+  if (!img || !container) return { x: 0, y: 0 };
+  const maxX = Math.max(0, (img.naturalWidth - container.clientWidth) / 2);
+  const maxY = Math.max(0, (img.naturalHeight - container.clientHeight) / 2);
+  return {
+    x: Math.max(-maxX, Math.min(maxX, offset.x)),
+    y: Math.max(-maxY, Math.min(maxY, offset.y)),
+  };
+}
+
 // Tries avif, then webp, then the raw original — always resolves (never rejects) once something decodes.
 // `probe` is the primary candidate's Image, used for a synchronous `.complete` check (cached vs cold).
 function resolveDisplay(best, rawUrl) {
@@ -59,8 +72,6 @@ function resolveDisplay(best, rawUrl) {
 
 export default function useLightbox(images, idx, onPrev, onNext) {
   const [zoomed, setZoomed] = useState(false);
-  const [zoomOverflowsX, setZoomOverflowsX] = useState(false);
-  const [zoomOverflowsY, setZoomOverflowsY] = useState(false);
   const [displayAvif, setDisplayAvif] = useState(null);
   const [displayWebp, setDisplayWebp] = useState(null);
   const [displaySrc, setDisplaySrc] = useState(null);
@@ -70,7 +81,6 @@ export default function useLightbox(images, idx, onPrev, onNext) {
   const [pinchOffset, setPinchOffset] = useState({ x: 0, y: 0 });
   const containerRef = useRef(null);
   const imgRef = useRef(null);
-  const clickRatioRef = useRef(null);
   const touchStartX = useRef(null);
   const touchStartY = useRef(null);
   const pinchRef = useRef(null);
@@ -215,7 +225,16 @@ export default function useLightbox(images, idx, onPrev, onNext) {
     const el = containerRef.current;
     if (!el) return;
     function onTouchMove(e) {
-      if (zoomedRef.current) return;
+      if (zoomedRef.current) {
+        if (e.touches.length === 1 && panRef.current) {
+          e.preventDefault();
+          const t = e.touches[0];
+          const { startX, startY, startOffset } = panRef.current;
+          const raw = { x: startOffset.x + (t.clientX - startX), y: startOffset.y + (t.clientY - startY) };
+          setPinchOffset(clampZoomPanOffset(raw, imgRef.current, el));
+        }
+        return;
+      }
 
       if (e.touches.length === 2 && pinchRef.current) {
         e.preventDefault();
@@ -243,27 +262,6 @@ export default function useLightbox(images, idx, onPrev, onNext) {
     return () => el.removeEventListener("touchmove", onTouchMove);
   }, []);
 
-  useEffect(() => {
-    if (!zoomed || !clickRatioRef.current || !containerRef.current || !imgRef.current) return;
-    const { rx, ry } = clickRatioRef.current;
-    clickRatioRef.current = null;
-    const container = containerRef.current;
-    const img = imgRef.current;
-    requestAnimationFrame(() => {
-      const naturalX = rx * img.naturalWidth;
-      const naturalY = ry * img.naturalHeight;
-      // Only scroll axes that actually overflow — the other axis is centered via flex
-      // alignment and has no scrollable range (assigning scrollLeft/Top there is a no-op
-      // at best, but skipping it keeps the intent explicit).
-      if (img.naturalWidth > container.clientWidth) {
-        container.scrollLeft = Math.max(0, naturalX - container.clientWidth / 2);
-      }
-      if (img.naturalHeight > container.clientHeight) {
-        container.scrollTop = Math.max(0, img.offsetTop + naturalY - container.clientHeight / 2);
-      }
-    });
-  }, [zoomed]);
-
   const appliedFitStyle = fitStyle || DEFAULT_FIT_STYLE;
 
   const imgStyle = {
@@ -271,7 +269,11 @@ export default function useLightbox(images, idx, onPrev, onNext) {
     userSelect: "none",
     cursor: zoomed ? "zoom-out" : "zoom-in",
     ...(zoomed
-      ? { width: lockedWidth ? `${lockedWidth}px` : "auto", height: "auto", maxWidth: "none", maxHeight: "none", margin: "3.5rem auto 2rem" }
+      ? {
+          width: lockedWidth ? `${lockedWidth}px` : "auto", height: "auto", maxWidth: "none", maxHeight: "none", margin: "3.5rem auto 2rem",
+          transform: `translate(${pinchOffset.x}px, ${pinchOffset.y}px)`,
+          transition: panRef.current ? "none" : "transform 0.2s ease",
+        }
       : {
           ...appliedFitStyle,
           transform: `translate(${pinchOffset.x}px, ${pinchOffset.y}px) scale(${pinchScale})`,
@@ -281,6 +283,13 @@ export default function useLightbox(images, idx, onPrev, onNext) {
   };
 
   function handleTouchStart(e) {
+    if (e.touches.length === 1 && zoomed) {
+      const t = e.touches[0];
+      panRef.current = { startX: t.clientX, startY: t.clientY, startOffset: pinchOffset };
+      touchStartX.current = null;
+      touchStartY.current = null;
+      return;
+    }
     if (e.touches.length === 2 && !zoomed) {
       const [a, b] = e.touches;
       pinchRef.current = {
@@ -337,12 +346,10 @@ export default function useLightbox(images, idx, onPrev, onNext) {
     }
   }
 
-  // Zoom always shows the image at 1:1 (native pixel size). Whether that overflows the
-  // viewport is just a fact about this image — it decides the positioning strategy, not
-  // whether zooming "is allowed". Each axis is judged independently: a portrait image at
-  // 1:1 may overflow vertically while still being narrower than the viewport — that axis
-  // should stay centered, not anchored left. Only an overflowing axis gets top/left
-  // anchoring + scroll-to-focal-point; a fitting axis is centered like the fit view.
+  // Zoom always shows the image at 1:1 (native pixel size), centered, and panned via
+  // `pinchOffset` (the same transform-based mechanism pinch-zoom uses). The clicked point
+  // (rx, ry) — a ratio of the image's natural dimensions — is centered in the viewport,
+  // clamped to the pan range so the image never gets dragged past its own edges.
   function startZoom(rx, ry) {
     const img = imgRef.current;
     const container = containerRef.current;
@@ -350,28 +357,35 @@ export default function useLightbox(images, idx, onPrev, onNext) {
     pinchRef.current = null;
     panRef.current = null;
     setPinchScale(1);
-    setPinchOffset({ x: 0, y: 0 });
-    const overflowsX = img.naturalWidth > container.clientWidth;
-    const overflowsY = img.naturalHeight > container.clientHeight;
-    clickRatioRef.current = (overflowsX || overflowsY) ? { rx, ry } : null;
-    setZoomOverflowsX(overflowsX);
-    setZoomOverflowsY(overflowsY);
+    const target = { x: -(rx - 0.5) * img.naturalWidth, y: -(ry - 0.5) * img.naturalHeight };
+    setPinchOffset(clampZoomPanOffset(target, img, container));
     setZoomed(true);
   }
 
   function exitZoom() {
     setLockedWidth(null);
+    setPinchOffset({ x: 0, y: 0 });
     setZoomed(false);
+  }
+
+  // Pinch-zoom has no "Fit" state of its own (it's a transient transform on top of the fit
+  // view) — resetting it just clears the gesture state back to scale 1 / no offset.
+  function resetPinchZoom() {
+    pinchRef.current = null;
+    panRef.current = null;
+    setPinchScale(1);
+    setPinchOffset({ x: 0, y: 0 });
   }
 
   function toggleZoom() {
     if (zoomed) exitZoom();
+    else if (pinchScale > 1) resetPinchZoom();
     else startZoom(0.5, 0.5);
   }
 
   const onImgClick = e => {
     e.stopPropagation();
-    if (pinchScale > 1) return;
+    if (pinchScale > 1) { resetPinchZoom(); return; }
     if (!zoomed) {
       const rect = e.currentTarget.getBoundingClientRect();
       startZoom((e.clientX - rect.left) / rect.width, (e.clientY - rect.top) / rect.height);
@@ -383,7 +397,7 @@ export default function useLightbox(images, idx, onPrev, onNext) {
   return {
     containerRef, imgRef,
     multi,
-    zoomed, zoomOverflowsX, zoomOverflowsY,
+    zoomedIn: zoomed || pinchScale > 1,
     displayAvif, displayWebp, displaySrc,
     imgStyle,
     handleTouchStart, handleTouchEnd,

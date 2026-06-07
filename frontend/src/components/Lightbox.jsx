@@ -6,7 +6,7 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
   const {
     containerRef, imgRef,
     multi,
-    zoomed, zoomOverflowsX, zoomOverflowsY,
+    zoomedIn,
     displayAvif, displayWebp, displaySrc,
     imgStyle,
     handleTouchStart, handleTouchEnd,
@@ -23,10 +23,9 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
         position: "fixed", inset: 0, zIndex: 200,
         background: "rgba(0,0,0,0.93)",
         display: "flex",
-        // default flex-direction: row → justifyContent = horizontal (X), alignItems = vertical (Y)
-        justifyContent: zoomed && zoomOverflowsX ? "flex-start" : "center",
-        alignItems: zoomed && zoomOverflowsY ? "flex-start" : "center",
-        overflow: zoomed && (zoomOverflowsX || zoomOverflowsY) ? "auto" : "hidden",
+        justifyContent: "center",
+        alignItems: "center",
+        overflow: "hidden",
       }}
     >
       <div
@@ -42,9 +41,9 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
           <button
             onClick={e => { e.stopPropagation(); toggleZoom(); }}
             style={topBtn}
-            title={zoomed ? "Fit to screen" : "100% zoom"}
+            title={zoomedIn ? "Fit to screen" : "100% zoom"}
           >
-            {zoomed ? "Fit" : "1:1"}
+            {zoomedIn ? "Fit" : "1:1"}
           </button>
           <button onClick={e => { e.stopPropagation(); onClose(); }} style={{ ...topBtn, fontSize: "20px" }}>×</button>
         </div>
