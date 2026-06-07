@@ -15,6 +15,29 @@ function bestUrl(img, minPx) {
   return { avif: null, webp: null };
 }
 
+// Tries avif, then webp, then the raw original — always resolves (never rejects) once something decodes.
+// `probe` is the primary candidate's Image, used for a synchronous `.complete` check (cached vs cold).
+function resolveDisplay(best, rawUrl) {
+  function tryDecode(url, result) {
+    const img = new Image();
+    img.src = url;
+    return { img, promise: img.decode().then(() => result) };
+  }
+
+  let primary;
+  if (best.avif) primary = tryDecode(best.avif, { avif: best.avif, webp: null });
+  else if (best.webp) primary = tryDecode(best.webp, { avif: null, webp: best.webp });
+  else primary = tryDecode(rawUrl, { avif: null, webp: null });
+
+  let chain = primary.promise;
+  if (best.avif && best.webp) {
+    chain = chain.catch(() => tryDecode(best.webp, { avif: null, webp: best.webp }).promise);
+  }
+  chain = chain.catch(() => ({ avif: null, webp: null }));
+
+  return { probe: primary.img, ready: chain.then(r => ({ ...r, src: rawUrl })) };
+}
+
 export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
   const [zoomed, setZoomed] = useState(false);
   const [displayAvif, setDisplayAvif] = useState(null);
@@ -61,54 +84,58 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
     let cancelled = false;
 
     if (isNav) {
-      // Navigation: pre-decode zoom (preloaded by previous effect) then apply all state atomically.
-      // Old image stays visible during decode — near-instant for preloaded images.
-      // No element remount means no blank frame; browser paints new image in the same frame as state update.
-      const preImg = new Image();
-      preImg.src = zoomSrc;
-      preImg.decode()
-        .then(() => {
-          if (cancelled) return;
-          setZoomed(false);
-          setLockedWidth(null);
-          setFitStyle(fitStyleValue);
-          setDisplayAvif(zoom.avif);
-          setDisplayWebp(zoom.webp || null);
-          setDisplaySrc(cur.url);
-        })
-        .catch(() => {
-          if (cancelled) return;
-          if (zoom.webp && zoomSrc !== zoom.webp) {
-            const wb = new Image();
-            wb.src = zoom.webp;
-            wb.decode()
-              .then(() => {
-                if (cancelled) return;
-                setZoomed(false);
-                setLockedWidth(null);
-                setFitStyle(fitStyleValue);
-                setDisplayAvif(null);
-                setDisplayWebp(zoom.webp);
-                setDisplaySrc(cur.url);
-              })
-              .catch(() => {
-                if (cancelled) return;
-                setZoomed(false);
-                setLockedWidth(null);
-                setFitStyle(fitStyleValue);
-                setDisplayAvif(fit.avif);
-                setDisplayWebp(fit.webp || null);
-                setDisplaySrc(cur.url);
-              });
-          } else {
-            setZoomed(false);
-            setLockedWidth(null);
-            setFitStyle(fitStyleValue);
-            setDisplayAvif(fit.avif);
-            setDisplayWebp(fit.webp || null);
-            setDisplaySrc(cur.url);
-          }
-        });
+      // Navigation: race fit vs zoom decode, show whichever lands first, upgrade to zoom if fit won.
+      // One rule covers every cache state — no thresholds, no special-casing:
+      //   zoom already decoded  → wins the race instantly → shown directly
+      //   only fit decoded      → fit wins → shown, zoom upgrades in when ready
+      //   neither decoded (cold)→ both start fresh, fit (smaller) finishes first → same as above
+      const fitR = resolveDisplay(fit, cur.url);
+      const zoomR = resolveDisplay(zoom, cur.url);
+
+      // Decode-only wait (bytes already cached) is imperceptible — keep the old image up, as before.
+      // A real network fetch is needed for both — clear now so the lightbox doesn't look frozen.
+      if (!(fitR.probe.complete || zoomR.probe.complete)) {
+        setDisplayAvif(null);
+        setDisplayWebp(null);
+        setDisplaySrc(null);
+      }
+
+      function applyResolved(d) {
+        if (cancelled) return;
+        setZoomed(false);
+        setLockedWidth(null);
+        setFitStyle(fitStyleValue);
+        setDisplayAvif(d.avif);
+        setDisplayWebp(d.webp);
+        setDisplaySrc(d.src);
+      }
+
+      function applyZoomUpgrade(d) {
+        if (cancelled) return;
+        if (zoomedRef.current && imgRef.current) {
+          const w = imgRef.current.offsetWidth;
+          if (w > 0) setLockedWidth(w);
+        }
+        setDisplayAvif(d.avif);
+        setDisplayWebp(d.webp);
+      }
+
+      let winner = null;
+      fitR.ready.then(d => {
+        if (cancelled || winner) return;
+        winner = "fit";
+        applyResolved(d);
+      });
+      zoomR.ready.then(d => {
+        if (cancelled) return;
+        if (!winner) {
+          winner = "zoom";
+          applyResolved(d);
+        } else if (winner === "fit") {
+          winner = "zoom";
+          applyZoomUpgrade(d);
+        }
+      });
     } else {
       // Initial open: show fit immediately, upgrade to zoom async
       setZoomed(false);
@@ -140,20 +167,12 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
         });
     }
 
-    // Pre-decode neighbours so the next nav can apply state without waiting for decode
+    // Warm the decode cache for neighbours at both resolutions — whichever wins the race on next nav.
     [idx - 1, idx + 1].forEach(i => {
       if (i < 0 || i >= images.length) return;
       const adj = images[i];
-      const adjZoom = bestUrl(adj, zoomPx);
-      const preImg = new Image();
-      preImg.src = adjZoom.avif || adjZoom.webp || adj.url;
-      preImg.decode().catch(() => {
-        if (adjZoom.webp && adjZoom.avif) {
-          const wb = new Image();
-          wb.src = adjZoom.webp;
-          wb.decode().catch(() => {});
-        }
-      });
+      resolveDisplay(bestUrl(adj, fitPx), adj.url);
+      resolveDisplay(bestUrl(adj, zoomPx), adj.url);
     });
 
     return () => { cancelled = true; };
