@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { nativeDisplaySize } from "../utils/nativeDisplaySize";
+import { nativeDisplaySize, WIDTHS } from "../utils/nativeDisplaySize";
 
-const WIDTHS = [400, 800, 1300, 1500, 2000, 3000, 4000];
 // UPGRADE_STRETCH: true = fit image stretched to final display size (blurry→sharp on initial open)
 const UPGRADE_STRETCH = true;
 const DEFAULT_FIT_STYLE = { maxHeight: "92vh", maxWidth: "90vw", objectFit: "contain" };

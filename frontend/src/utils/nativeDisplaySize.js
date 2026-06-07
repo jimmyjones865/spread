@@ -1,4 +1,4 @@
-const WIDTHS = [400, 800, 1300, 1500, 2000, 3000, 4000];
+export const WIDTHS = [400, 800, 1300, 1500, 2000, 3000, 4000];
 
 // The largest resource that will actually be served for an image — ladder generation
 // skips any rung >= the source width, so a small original may only ever produce e.g.
