@@ -59,8 +59,8 @@ def _book_list_item(book: Book, artist_name: str, artist_slug: str) -> dict:
     cover_variants = {}
     if cover_img:
         stem = cover_img.filename[:-4]
-        cover_url = f"/images/{book.id}/{stem}_thumb.jpg"
-        cover_webp_url = f"/images/{book.id}/{stem}_thumb.webp"
+        cover_url = f"/images/{book.id}/{stem}_400.webp"
+        cover_webp_url = cover_url
         cover_variants = _cover_urls(book.id, cover_img.filename)
     return {
         "slug": book.slug,
