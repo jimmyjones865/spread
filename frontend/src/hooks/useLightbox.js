@@ -82,8 +82,7 @@ export default function useLightbox(images, idx, onPrev, onNext) {
   const [viewportKey, setViewportKey] = useState(0);
   // prefers-reduced-motion: when on, the fit-view transform transition is suppressed.
   const [reducedMotion, setReducedMotion] = useState(false);
-  // Idle fade: chrome (counter, side arrows) dims to a hint after IDLE_MS with no input.
-  // Close button stays at full opacity — it's the escape hatch.
+  // Idle fade: chrome (counter, arrows, close button) dims to a hint after IDLE_MS with no input.
   const [idle, setIdle] = useState(false);
   const containerRef = useRef(null);
   const imgRef = useRef(null);
@@ -145,11 +144,11 @@ export default function useLightbox(images, idx, onPrev, onNext) {
     return () => mq.removeEventListener("change", handler);
   }, []);
 
-  // Idle fade: dim the chrome (counter, side arrows) after IDLE_MS with no input. Reset
-  // on touch / key / mouse activity. Window-level listeners catch activity anywhere in
-  // the lightbox. Close button keeps full opacity via the JSX.
+  // Idle fade: dim the chrome (counter, arrows, close button) after IDLE_MS with no input.
+  // Reset on touch / key / mouse activity. Window-level listeners catch activity anywhere
+  // in the lightbox.
   useEffect(() => {
-    const IDLE_MS = 3000;
+    const IDLE_MS = 1000;
     let timer = null;
     function reset() {
       setIdle(false);
