@@ -14,6 +14,20 @@ function bestUrl(img, minPx) {
   return { avif: null, webp: null };
 }
 
+// The largest resource that will actually be served for this image — ladder generation
+// skips any rung >= the source width, so a small original may only have e.g. a `_400`
+// variant. Stretching the fit view past that size would upscale a resource that has
+// nothing sharper to upgrade to (the permanent-blur bug). Falls back to the stored
+// original dimensions when no ladder rung exists (very small sources serve the raw file).
+function nativeDisplaySize(img) {
+  for (const w of [...WIDTHS].reverse()) {
+    if (img[`avif_${w}`] || img[`url_${w}`]) {
+      return { width: w, height: Math.round(w * (img.height / img.width)) };
+    }
+  }
+  return { width: img.width, height: img.height };
+}
+
 function touchDist(a, b) {
   return Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
 }
@@ -94,8 +108,9 @@ export default function useLightbox(images, idx, onPrev, onNext) {
     if (UPGRADE_STRETCH && cur?.width && cur?.height) {
       const maxW = window.innerWidth;
       const maxH = window.innerHeight;
-      const scale = Math.min(maxW / cur.width, maxH / cur.height, 1);
-      fitStyleValue = { width: Math.round(cur.width * scale) + "px", height: Math.round(cur.height * scale) + "px" };
+      const { width: nativeW, height: nativeH } = nativeDisplaySize(cur);
+      const scale = Math.min(maxW / nativeW, maxH / nativeH, 1);
+      fitStyleValue = { width: Math.round(nativeW * scale) + "px", height: Math.round(nativeH * scale) + "px" };
     } else {
       fitStyleValue = DEFAULT_FIT_STYLE;
     }
