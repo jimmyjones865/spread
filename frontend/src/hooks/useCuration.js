@@ -14,6 +14,7 @@ export function useCuration(bookId, { onImagesAdded, onAddToBook }) {
   const [descBlocks, setDescBlocks] = useState(new Set());
   const [colophonBlocks, setColophonBlocks] = useState(new Set());
   const [adding, setAdding] = useState(false);
+  const [addProgress, setAddProgress] = useState(null);
   const [addError, setAddError] = useState(null);
   const [addDone, setAddDone] = useState(false);
   const [history, setHistory] = useState([]);
@@ -75,7 +76,8 @@ export function useCuration(bookId, { onImagesAdded, onAddToBook }) {
     }
   }
 
-  function toggleField(setFn, i) {
+  function toggleField(field, i) {
+    const setFn = field === "desc" ? setDescBlocks : setColophonBlocks;
     setFn(prev => {
       const next = new Set(prev);
       if (next.has(i)) next.delete(i); else next.add(i);
@@ -91,7 +93,9 @@ export function useCuration(bookId, { onImagesAdded, onAddToBook }) {
       const toDownload = [];
       if (coverUrl) toDownload.push({ url: coverUrl, role: "cover" });
       for (const u of spreadUrls) toDownload.push({ url: u, role: "spread" });
-      for (const { url: imgUrl, role } of toDownload) {
+      for (let i = 0; i < toDownload.length; i++) {
+        setAddProgress({ current: i + 1, total: toDownload.length });
+        const { url: imgUrl, role } = toDownload[i];
         await api.downloadImage(bookId, imgUrl, role);
       }
       if (toDownload.length > 0) onImagesAdded();
@@ -111,6 +115,7 @@ export function useCuration(bookId, { onImagesAdded, onAddToBook }) {
       setAddError(e.message);
     } finally {
       setAdding(false);
+      setAddProgress(null);
     }
   }
 
@@ -141,7 +146,7 @@ export function useCuration(bookId, { onImagesAdded, onAddToBook }) {
     imageSizes, imageReachable, imageDims, setImageDims,
     coverUrl, spreadUrls,
     descBlocks, colophonBlocks,
-    adding, addError, addDone,
+    adding, addProgress, addError, addDone,
     history,
     doScrape, toggleCover, toggleSpread, toggleField, addToBook,
     sizesLoaded, visibleImageUrls, hiddenCount,

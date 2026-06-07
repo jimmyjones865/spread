@@ -9,6 +9,22 @@ const sectionLabel = { fontSize: "11px", textTransform: "uppercase", letterSpaci
 const previewStyle = { width: "100%", height: "120px", resize: "vertical", padding: "0.5rem 0.6rem", background: "var(--bg-highlight)", border: "1px solid var(--border)", borderRadius: "4px", color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: "12px", boxSizing: "border-box" };
 const errorStyle = { color: "var(--danger)", fontSize: "13px", margin: "0 0 0.75rem" };
 
+function SaveBar({ c, style }) {
+  return (
+    <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", ...style }}>
+      <button onClick={c.addToBook} disabled={c.adding} style={actionBtn}>
+        {c.adding
+          ? c.addProgress
+            ? `Saving image ${c.addProgress.current}/${c.addProgress.total}…`
+            : "Saving…"
+          : "Add to book & save"}
+      </button>
+      {c.addDone && <span style={{ fontSize: "13px", color: "var(--accent)" }}>Saved</span>}
+      {c.addError && <span style={{ fontSize: "13px", color: "var(--danger)" }}>{c.addError}</span>}
+    </div>
+  );
+}
+
 export default function CurationPanel({ bookId, onImagesAdded, onAddToBook }) {
   const c = useCuration(bookId, { onImagesAdded, onAddToBook });
 
@@ -94,15 +110,7 @@ export default function CurationPanel({ bookId, onImagesAdded, onAddToBook }) {
               />
             ))}
           </div>
-          {c.hasAnything && (
-            <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", marginTop: "0.5rem" }}>
-              <button onClick={c.addToBook} disabled={c.adding} style={actionBtn}>
-                {c.adding ? "Saving…" : "Add to book & save"}
-              </button>
-              {c.addDone && <span style={{ fontSize: "13px", color: "var(--accent)" }}>Saved</span>}
-              {c.addError && <span style={{ fontSize: "13px", color: "var(--danger)" }}>{c.addError}</span>}
-            </div>
-          )}
+          {c.hasAnything && <SaveBar c={c} style={{ marginTop: "0.5rem" }} />}
         </div>
       )}
 
@@ -117,8 +125,8 @@ export default function CurationPanel({ bookId, onImagesAdded, onAddToBook }) {
                 text={block}
                 inDesc={c.descBlocks.has(i)}
                 inColophon={c.colophonBlocks.has(i)}
-                onDescToggle={() => c.toggleField(c.setDescBlocks, i)}
-                onColophonToggle={() => c.toggleField(c.setColophonBlocks, i)}
+                onDescToggle={() => c.toggleField("desc", i)}
+                onColophonToggle={() => c.toggleField("colophon", i)}
               />
             ))}
           </div>
@@ -144,15 +152,7 @@ export default function CurationPanel({ bookId, onImagesAdded, onAddToBook }) {
       )}
 
       {/* Action button */}
-      {c.scrape && c.hasAnything && (
-        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
-          <button onClick={c.addToBook} disabled={c.adding} style={actionBtn}>
-            {c.adding ? "Saving…" : "Add to book & save"}
-          </button>
-          {c.addDone && <span style={{ fontSize: "13px", color: "var(--accent)" }}>Saved</span>}
-          {c.addError && <span style={{ fontSize: "13px", color: "var(--danger)" }}>{c.addError}</span>}
-        </div>
-      )}
+      {c.scrape && c.hasAnything && <SaveBar c={c} />}
     </div>
   );
 }
