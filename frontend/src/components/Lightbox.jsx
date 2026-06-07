@@ -44,6 +44,7 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
           <button
             ref={closeButtonRef}
             onClick={e => { e.stopPropagation(); onClose(); }}
+            className="lightbox-close-btn"
             style={{ ...topBtn, fontSize: "20px" }}
             aria-label="Close image viewer"
           >×</button>
