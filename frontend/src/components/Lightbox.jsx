@@ -15,6 +15,13 @@ function bestUrl(img, minPx) {
   return { avif: null, webp: null };
 }
 
+function touchDist(a, b) {
+  return Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
+}
+function touchMid(a, b) {
+  return { x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2 };
+}
+
 // Tries avif, then webp, then the raw original — always resolves (never rejects) once something decodes.
 // `probe` is the primary candidate's Image, used for a synchronous `.complete` check (cached vs cold).
 function resolveDisplay(best, rawUrl) {
@@ -47,11 +54,14 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
   const [displaySrc, setDisplaySrc] = useState(null);
   const [lockedWidth, setLockedWidth] = useState(null);
   const [fitStyle, setFitStyle] = useState(null);
+  const [pinchScale, setPinchScale] = useState(1);
+  const [pinchOffset, setPinchOffset] = useState({ x: 0, y: 0 });
   const containerRef = useRef(null);
   const imgRef = useRef(null);
   const clickRatioRef = useRef(null);
   const touchStartX = useRef(null);
   const touchStartY = useRef(null);
+  const pinchRef = useRef(null);
   const zoomedRef = useRef(false);
   const hasLoadedRef = useRef(false);
   const multi = images.length > 1;
@@ -62,6 +72,10 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
     const cur = images[idx];
     const isNav = hasLoadedRef.current;
     hasLoadedRef.current = true;
+
+    pinchRef.current = null;
+    setPinchScale(1);
+    setPinchOffset({ x: 0, y: 0 });
 
     let fitStyleValue;
     if (UPGRADE_STRETCH && cur?.width && cur?.height) {
@@ -180,6 +194,28 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
     return () => { cancelled = true; };
   }, [idx, images]);
 
+  // Native (non-passive) listener: React's synthetic touch handlers are passive,
+  // so e.preventDefault() inside them can't stop the browser's own pinch-zoom.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    function onTouchMove(e) {
+      if (e.touches.length !== 2 || !pinchRef.current || zoomedRef.current) return;
+      e.preventDefault();
+      const [a, b] = e.touches;
+      const { startDist, startScale, startMid, startOffset } = pinchRef.current;
+      const scale = Math.min(4, Math.max(1, startScale * (touchDist(a, b) / startDist)));
+      const mid = touchMid(a, b);
+      const offset = scale > 1
+        ? { x: startOffset.x + (mid.x - startMid.x), y: startOffset.y + (mid.y - startMid.y) }
+        : { x: 0, y: 0 };
+      setPinchScale(scale);
+      setPinchOffset(offset);
+    }
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    return () => el.removeEventListener("touchmove", onTouchMove);
+  }, []);
+
   useEffect(() => {
     if (!zoomed || !clickRatioRef.current || !containerRef.current || !imgRef.current) return;
     const { rx, ry } = clickRatioRef.current;
@@ -209,17 +245,43 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
     cursor: zoomed ? "zoom-out" : "zoom-in",
     ...(zoomed
       ? { width: lockedWidth ? `${lockedWidth}px` : "auto", height: "auto", maxWidth: "none", maxHeight: "none", margin: "3.5rem auto 2rem" }
-      : appliedFitStyle
+      : {
+          ...appliedFitStyle,
+          transform: `translate(${pinchOffset.x}px, ${pinchOffset.y}px) scale(${pinchScale})`,
+          transition: pinchRef.current ? "none" : "transform 0.2s ease",
+        }
     ),
   };
 
   function handleTouchStart(e) {
+    if (e.touches.length === 2 && !zoomed) {
+      const [a, b] = e.touches;
+      pinchRef.current = {
+        startDist: touchDist(a, b),
+        startScale: pinchScale,
+        startMid: touchMid(a, b),
+        startOffset: pinchOffset,
+      };
+      touchStartX.current = null;
+      touchStartY.current = null;
+      return;
+    }
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
   }
 
   function handleTouchEnd(e) {
-    if (touchStartX.current === null || !multi || zoomed) return;
+    if (e.touches.length < 2 && pinchRef.current) {
+      pinchRef.current = null;
+      if (pinchScale <= 1) {
+        setPinchScale(1);
+        setPinchOffset({ x: 0, y: 0 });
+      } else {
+        // Force a re-render so `transition` re-enables (was "none" mid-gesture, ref-driven).
+        setPinchOffset(o => ({ ...o }));
+      }
+    }
+    if (touchStartX.current === null || !multi || zoomed || pinchScale > 1) return;
     const dx = e.changedTouches[0].clientX - touchStartX.current;
     const dy = e.changedTouches[0].clientY - touchStartY.current;
     touchStartX.current = null;
@@ -239,6 +301,9 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
     const img = imgRef.current;
     const container = containerRef.current;
     if (!img || !container) return;
+    pinchRef.current = null;
+    setPinchScale(1);
+    setPinchOffset({ x: 0, y: 0 });
     const overflowsX = img.naturalWidth > container.clientWidth;
     const overflowsY = img.naturalHeight > container.clientHeight;
     clickRatioRef.current = (overflowsX || overflowsY) ? { rx, ry } : null;
@@ -249,6 +314,7 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
 
   const onImgClick = e => {
     e.stopPropagation();
+    if (pinchScale > 1) return;
     if (!zoomed) {
       const rect = e.currentTarget.getBoundingClientRect();
       startZoom((e.clientX - rect.left) / rect.width, (e.clientY - rect.top) / rect.height);
