@@ -7,6 +7,7 @@ import Lightbox from "../components/Lightbox";
 import BookMeta from "../components/BookMeta";
 import LazyImage from "../components/LazyImage";
 import { makeSrcset } from "../utils/srcset";
+import { nativeDisplaySize } from "../utils/nativeDisplaySize";
 
 export default function BookDetail() {
   const { slug } = useParams();
@@ -78,7 +79,7 @@ export default function BookDetail() {
 
   if (!book) return null;
 
-  const imgWidths = book.images.map(i => i.width).filter(Boolean);
+  const imgWidths = book.images.filter(i => i.width && i.height).map(i => nativeDisplaySize(i).width);
   const imgColWidth = imgWidths.length > 0
     ? Math.min(imageMaxWidth, Math.min(...imgWidths))
     : imageMaxWidth;

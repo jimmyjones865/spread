@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { nativeDisplaySize } from "../utils/nativeDisplaySize";
 
 const WIDTHS = [400, 800, 1300, 1500, 2000, 3000, 4000];
 // UPGRADE_STRETCH: true = fit image stretched to final display size (blurry→sharp on initial open)
@@ -12,20 +13,6 @@ function bestUrl(img, minPx) {
     if (img[`avif_${fw}`] || img[`url_${fw}`]) return { avif: img[`avif_${fw}`] || null, webp: img[`url_${fw}`] || null };
   }
   return { avif: null, webp: null };
-}
-
-// The largest resource that will actually be served for this image — ladder generation
-// skips any rung >= the source width, so a small original may only have e.g. a `_400`
-// variant. Stretching the fit view past that size would upscale a resource that has
-// nothing sharper to upgrade to (the permanent-blur bug). Falls back to the stored
-// original dimensions when no ladder rung exists (very small sources serve the raw file).
-function nativeDisplaySize(img) {
-  for (const w of [...WIDTHS].reverse()) {
-    if (img[`avif_${w}`] || img[`url_${w}`]) {
-      return { width: w, height: Math.round(w * (img.height / img.width)) };
-    }
-  }
-  return { width: img.width, height: img.height };
 }
 
 function touchDist(a, b) {
