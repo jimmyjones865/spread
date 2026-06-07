@@ -73,10 +73,11 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
 
 function arrowBtn(side) {
   return {
-    position: "absolute",
+    position: "fixed",
     [side]: "1.25rem",
     top: "50%",
     transform: "translateY(-50%)",
+    zIndex: 1,
     background: "none",
     border: "none",
     color: "rgba(255,255,255,0.6)",
