@@ -77,15 +77,11 @@ code, kbd, pre, .mono {
   display: none;
 }
 
-/* Lightbox close button receives programmatic focus on open (a11y: keyboard users land
-   somewhere inside the dialog). Suppress the ring for that pointer-triggered case; keep it
-   for actual keyboard navigation (Tab). */
+/* Lightbox close button receives programmatic focus on open. Browsers vary on whether
+   that counts as keyboard-worthy focus (:focus-visible matches it here), so suppress the
+   ring outright rather than have it flash on every open. */
 .lightbox-close-btn:focus {
   outline: none;
-}
-.lightbox-close-btn:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.6);
-  outline-offset: 2px;
 }
 
 /* Page transitions — crossfade on navigation */
