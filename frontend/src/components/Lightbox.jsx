@@ -22,6 +22,18 @@ function touchMid(a, b) {
   return { x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2 };
 }
 
+// Keeps a scaled-up image from being panned entirely out of view: at scale s, the image
+// overflows its container by (s-1)/2 per side, so that's the natural pan limit per axis.
+function clampPanOffset(offset, scale, container) {
+  if (!container || scale <= 1) return { x: 0, y: 0 };
+  const maxX = (scale - 1) * container.clientWidth / 2;
+  const maxY = (scale - 1) * container.clientHeight / 2;
+  return {
+    x: Math.max(-maxX, Math.min(maxX, offset.x)),
+    y: Math.max(-maxY, Math.min(maxY, offset.y)),
+  };
+}
+
 // Tries avif, then webp, then the raw original — always resolves (never rejects) once something decodes.
 // `probe` is the primary candidate's Image, used for a synchronous `.complete` check (cached vs cold).
 function resolveDisplay(best, rawUrl) {
@@ -62,6 +74,7 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
   const touchStartX = useRef(null);
   const touchStartY = useRef(null);
   const pinchRef = useRef(null);
+  const panRef = useRef(null);
   const zoomedRef = useRef(false);
   const hasLoadedRef = useRef(false);
   const multi = images.length > 1;
@@ -74,6 +87,7 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
     hasLoadedRef.current = true;
 
     pinchRef.current = null;
+    panRef.current = null;
     setPinchScale(1);
     setPinchOffset({ x: 0, y: 0 });
 
@@ -200,17 +214,29 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
     const el = containerRef.current;
     if (!el) return;
     function onTouchMove(e) {
-      if (e.touches.length !== 2 || !pinchRef.current || zoomedRef.current) return;
-      e.preventDefault();
-      const [a, b] = e.touches;
-      const { startDist, startScale, startMid, startOffset } = pinchRef.current;
-      const scale = Math.min(4, Math.max(1, startScale * (touchDist(a, b) / startDist)));
-      const mid = touchMid(a, b);
-      const offset = scale > 1
-        ? { x: startOffset.x + (mid.x - startMid.x), y: startOffset.y + (mid.y - startMid.y) }
-        : { x: 0, y: 0 };
-      setPinchScale(scale);
-      setPinchOffset(offset);
+      if (zoomedRef.current) return;
+
+      if (e.touches.length === 2 && pinchRef.current) {
+        e.preventDefault();
+        const [a, b] = e.touches;
+        const { startDist, startScale, startMid, startOffset } = pinchRef.current;
+        const scale = Math.min(4, Math.max(1, startScale * (touchDist(a, b) / startDist)));
+        const mid = touchMid(a, b);
+        const raw = scale > 1
+          ? { x: startOffset.x + (mid.x - startMid.x), y: startOffset.y + (mid.y - startMid.y) }
+          : { x: 0, y: 0 };
+        setPinchScale(scale);
+        setPinchOffset(clampPanOffset(raw, scale, el));
+        return;
+      }
+
+      if (e.touches.length === 1 && panRef.current) {
+        e.preventDefault();
+        const t = e.touches[0];
+        const { startX, startY, startOffset, scale } = panRef.current;
+        const raw = { x: startOffset.x + (t.clientX - startX), y: startOffset.y + (t.clientY - startY) };
+        setPinchOffset(clampPanOffset(raw, scale, el));
+      }
     }
     el.addEventListener("touchmove", onTouchMove, { passive: false });
     return () => el.removeEventListener("touchmove", onTouchMove);
@@ -248,7 +274,7 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
       : {
           ...appliedFitStyle,
           transform: `translate(${pinchOffset.x}px, ${pinchOffset.y}px) scale(${pinchScale})`,
-          transition: pinchRef.current ? "none" : "transform 0.2s ease",
+          transition: (pinchRef.current || panRef.current) ? "none" : "transform 0.2s ease",
         }
     ),
   };
@@ -262,6 +288,14 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
         startMid: touchMid(a, b),
         startOffset: pinchOffset,
       };
+      panRef.current = null;
+      touchStartX.current = null;
+      touchStartY.current = null;
+      return;
+    }
+    if (e.touches.length === 1 && pinchScale > 1 && !zoomed) {
+      const t = e.touches[0];
+      panRef.current = { startX: t.clientX, startY: t.clientY, startOffset: pinchOffset, scale: pinchScale };
       touchStartX.current = null;
       touchStartY.current = null;
       return;
@@ -271,7 +305,14 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
   }
 
   function handleTouchEnd(e) {
-    if (e.touches.length < 2 && pinchRef.current) {
+    // Lifted one finger mid-pinch while still zoomed in — hand off to single-finger panning.
+    if (pinchRef.current && e.touches.length === 1 && pinchScale > 1) {
+      const t = e.touches[0];
+      pinchRef.current = null;
+      panRef.current = { startX: t.clientX, startY: t.clientY, startOffset: pinchOffset, scale: pinchScale };
+      return;
+    }
+    if (pinchRef.current && e.touches.length < 2) {
       pinchRef.current = null;
       if (pinchScale <= 1) {
         setPinchScale(1);
@@ -280,6 +321,10 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
         // Force a re-render so `transition` re-enables (was "none" mid-gesture, ref-driven).
         setPinchOffset(o => ({ ...o }));
       }
+    }
+    if (panRef.current && e.touches.length === 0) {
+      panRef.current = null;
+      setPinchOffset(o => ({ ...o }));
     }
     if (touchStartX.current === null || !multi || zoomed || pinchScale > 1) return;
     const dx = e.changedTouches[0].clientX - touchStartX.current;
@@ -302,6 +347,7 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
     const container = containerRef.current;
     if (!img || !container) return;
     pinchRef.current = null;
+    panRef.current = null;
     setPinchScale(1);
     setPinchOffset({ x: 0, y: 0 });
     const overflowsX = img.naturalWidth > container.clientWidth;
