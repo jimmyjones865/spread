@@ -127,6 +127,22 @@ class BookTag(Base):
     tag_id = Column(Integer, ForeignKey("tags.id"), primary_key=True)
 
 
+class TagCombination(Base):
+    """A canonical, order-independent signature for a set of tags, plus its
+    position in the theme-sort sequence. Auto-created on book save when a new
+    combination of tags appears; reorder manually in the admin UI.
+
+    Signature is built from sorted tag *ids* (not names) so renaming a tag
+    doesn't invalidate the combination.
+    """
+
+    __tablename__ = "tag_combinations"
+
+    id = Column(Integer, primary_key=True)
+    signature = Column(String, nullable=False, unique=True)
+    sort_order = Column(Integer, nullable=False, default=0)
+
+
 class Page(Base):
     __tablename__ = "pages"
 

@@ -123,12 +123,18 @@ export default function FilterPanel({
         <FilterSection label="Sort by">
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <select value={sort} onChange={e => setSort(e.target.value)} style={{ ...panelSelect, flex: 1 }}>
+              <option value="theme">Theme</option>
               <option value="artist">Artist</option>
               <option value="title">Title</option>
               <option value="year">Year</option>
               <option value="publisher">Publisher</option>
             </select>
-            <button onClick={() => setOrder(order === "asc" ? "desc" : "asc")} style={orderBtn}>
+            <button
+              onClick={() => sort !== "theme" && setOrder(order === "asc" ? "desc" : "asc")}
+              disabled={sort === "theme"}
+              style={{ ...orderBtn, opacity: sort === "theme" ? 0.4 : 1, cursor: sort === "theme" ? "not-allowed" : "pointer" }}
+              title={sort === "theme" ? "Theme sort has its own order" : "Toggle ascending / descending"}
+            >
               {order === "asc" ? "↑" : "↓"}
             </button>
           </div>
