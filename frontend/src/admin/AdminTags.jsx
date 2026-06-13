@@ -116,7 +116,7 @@ export default function AdminTags() {
 
       <h2 style={{ ...h1, fontSize: "18px", marginTop: "2.5rem", marginBottom: "0.5rem" }}>Tag combinations</h2>
       <p style={{ color: "var(--text-muted)", fontSize: "13px", margin: "0 0 1rem" }}>
-        Order of the gallery when sorted by <strong>Theme</strong>. New combinations are added at the bottom when you save a book — drag them up to set their position.
+        Order of the gallery when sorted by <strong>Theme</strong>. New combinations are added at the bottom when you save a book — use ↑↓ to set their position.
       </p>
 
       {combos.length === 0 && (

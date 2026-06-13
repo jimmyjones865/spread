@@ -148,13 +148,13 @@ def list_books(
         def theme_key(b: Book):
             tag_ids = [t.id for t in b.tags]
             if not tag_ids:
-                return (1, b.artist.name.lower(), b.title.lower())
+                return (1, (b.artist.name or "").lower(), (b.title or "").lower())
             sig = signature_for_tags(b.tags)
             return (
                 0,
                 combo_order.get(sig, 1_000_000),
-                b.artist.name.lower(),
-                b.title.lower(),
+                (b.artist.name or "").lower(),
+                (b.title or "").lower(),
             )
 
         books = sorted(books, key=theme_key)

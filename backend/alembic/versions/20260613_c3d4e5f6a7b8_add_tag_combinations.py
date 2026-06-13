@@ -18,17 +18,21 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.create_table(
-        'tag_combinations',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('signature', sa.String(), nullable=False),
-        sa.Column('sort_order', sa.Integer(), nullable=False),
-        sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('signature'),
-    )
-    op.create_index('ix_tag_combinations_sort_order', 'tag_combinations', ['sort_order'])
+    conn = op.get_bind()
+    if not conn.dialect.has_table(conn, 'tag_combinations'):
+        op.create_table(
+            'tag_combinations',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('signature', sa.String(), nullable=False),
+            sa.Column('sort_order', sa.Integer(), nullable=False),
+            sa.PrimaryKeyConstraint('id'),
+            sa.UniqueConstraint('signature'),
+        )
+        op.create_index('ix_tag_combinations_sort_order', 'tag_combinations', ['sort_order'])
 
 
 def downgrade() -> None:
-    op.drop_index('ix_tag_combinations_sort_order', table_name='tag_combinations')
-    op.drop_table('tag_combinations')
+    conn = op.get_bind()
+    if conn.dialect.has_table(conn, 'tag_combinations'):
+        op.drop_index('ix_tag_combinations_sort_order', table_name='tag_combinations')
+        op.drop_table('tag_combinations')
