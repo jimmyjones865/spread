@@ -23,15 +23,6 @@ export function useCuration(bookId, { onImagesAdded, onAddToBook }) {
     api.getBookScrapes(bookId).then(setHistory).catch(() => {});
   }, [bookId]);
 
-  useEffect(() => {
-    if (!sizesLoaded || !scrape) return;
-    const trimmed = url.trim();
-    setHistory(prev => prev.map(h =>
-      h.url === trimmed ? { ...h, image_count: visibleImageUrls.length } : h
-    ));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sizesLoaded]);
-
   async function doScrape(force = false) {
     if (!url.trim()) return;
     setScraping(true);
@@ -140,6 +131,15 @@ export function useCuration(bookId, { onImagesAdded, onAddToBook }) {
     return true;
   });
   const hiddenCount = scrape && sizesLoaded ? scrape.image_urls.length - visibleImageUrls.length : 0;
+
+  useEffect(() => {
+    if (!sizesLoaded || !scrape) return;
+    const trimmed = url.trim();
+    setHistory(prev => prev.map(h =>
+      h.url === trimmed ? { ...h, image_count: visibleImageUrls.length } : h
+    ));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sizesLoaded]);
   const imageCount = (coverUrl ? 1 : 0) + spreadUrls.length;
   const descText = scrape
     ? scrape.text_blocks.filter((_, i) => descBlocks.has(i)).join("\n\n")
