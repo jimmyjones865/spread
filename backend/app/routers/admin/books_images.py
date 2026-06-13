@@ -225,8 +225,8 @@ async def download_image_from_url(
                 raise HTTPException(502, detail="Too many redirects")
 
             ct = resp.headers.get("content-type", "")
-            if not any(t in ct for t in ("image/jpeg", "image/png", "image/webp", "image/")):
-                raise HTTPException(400, detail=f"Not an image (content-type: {ct or 'missing'})")
+            if ct and "image/" not in ct:
+                raise HTTPException(400, detail=f"Not an image (content-type: {ct})")
 
             data = b""
             async for chunk in resp.aiter_bytes(65536):
