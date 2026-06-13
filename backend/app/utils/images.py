@@ -4,33 +4,18 @@ from PIL import Image, ImageOps
 
 Image.MAX_IMAGE_PIXELS = 100_000_000
 
-MAGIC = {
-    b"\xff\xd8\xff": "jpeg",
-    b"\x89PNG": "png",
-    b"RIFF": "webp",
-}
-
 LADDER = {400: (70, 60), 800: (78, 68), 1300: (82, 72), 1500: (82, 72), 2000: (85, 75), 3000: (85, 75), 4000: (85, 75)}
 
 
-def _detect_type(data: bytes) -> str | None:
-    for magic, fmt in MAGIC.items():
-        if data[:len(magic)] == magic:
-            if fmt == "webp" and data[8:12] != b"WEBP":
-                return None
-            return fmt
-    return None
-
-
 def sanitize_image(data: bytes) -> bytes:
-    if _detect_type(data) is None:
-        raise ValueError("Unsupported or unsafe image format")
-
-    img = Image.open(io.BytesIO(data))
-    img.verify()
-    img = Image.open(io.BytesIO(data))
-    img = ImageOps.exif_transpose(img)
-    img = img.convert("RGB")
+    try:
+        img = Image.open(io.BytesIO(data))
+        img.verify()
+        img = Image.open(io.BytesIO(data))
+        img = ImageOps.exif_transpose(img)
+        img = img.convert("RGB")
+    except Exception as e:
+        raise ValueError(f"Unsupported or unsafe image format: {e}")
 
     out = io.BytesIO()
     img.save(out, format="JPEG", quality=85)
