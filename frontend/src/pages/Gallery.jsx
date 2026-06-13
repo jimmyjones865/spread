@@ -17,7 +17,7 @@ export default function Gallery() {
 
   const [artists, setArtists] = useState(() => _staticCache.artists || []);
   const [allTags, setAllTags] = useState(() => _staticCache.tags || []);
-  const [siteTitle, setSiteTitle] = useState("Spread");
+  const [siteTitle, setSiteTitle] = useState(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [cardWidth, setCardWidth] = useState(() => {
