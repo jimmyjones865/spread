@@ -1,4 +1,5 @@
 import { useNavigate, useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
 import ImageManager from "../components/ImageManager";
 import TagSelect from "../components/TagSelect";
 import CurationPanel from "../components/CurationPanel";
@@ -7,10 +8,16 @@ import ArtistCombobox from "./ArtistCombobox";
 import LanguageCombobox from "./LanguageCombobox";
 import { Section, Row, Input, inputStyle } from "./Field";
 import useBookForm from "../hooks/useBookForm";
+import api from "../api";
 
 export default function AdminBookForm() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [bookIds, setBookIds] = useState([]);
+
+  useEffect(() => {
+    api.getBooks().then(books => setBookIds(books.map(b => b.id))).catch(() => {});
+  }, []);
 
   const {
     isNew, form, set, book, loadBook,
@@ -21,11 +28,22 @@ export default function AdminBookForm() {
 
   const links = book?.links ?? [];
 
+  const numId = id ? parseInt(id) : null;
+  const idx = bookIds.indexOf(numId);
+  const prevId = idx > 0 ? bookIds[idx - 1] : null;
+  const nextId = idx >= 0 && idx < bookIds.length - 1 ? bookIds[idx + 1] : null;
+
   return (
     <div style={{ maxWidth: "760px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "2rem" }}>
         <button onClick={() => navigate("/admin")} style={backBtn}>← Books</button>
-        <h1 style={h1}>{isNew ? "New book" : form.title || "Edit book"}</h1>
+        <h1 style={{ ...h1, flex: 1 }}>{isNew ? "New book" : form.title || "Edit book"}</h1>
+        {!isNew && bookIds.length > 0 && (
+          <div style={{ display: "flex", gap: "0.4rem" }}>
+            <button onClick={() => navigate(`/admin/books/${prevId}`)} disabled={!prevId} style={navBtn}>‹ Prev</button>
+            <button onClick={() => navigate(`/admin/books/${nextId}`)} disabled={!nextId} style={navBtn}>Next ›</button>
+          </div>
+        )}
       </div>
 
       {error && <p style={{ color: "var(--danger)", marginBottom: "1rem" }}>{error}</p>}
@@ -153,3 +171,4 @@ const checkLabel = { display: "inline-flex", alignItems: "center", gap: "0.4rem"
 const h1 = { margin: 0, fontSize: "22px", fontWeight: 600, color: "var(--text-bright)" };
 const backBtn = { background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "14px", padding: 0 };
 const primaryBtn = { background: "var(--accent-dim)", color: "var(--text-bright)", border: "none", borderRadius: "4px", padding: "0.6rem 1.5rem", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "14px" };
+const navBtn = { background: "none", border: "1px solid var(--border)", color: "var(--text-muted)", borderRadius: "4px", padding: "0.3rem 0.75rem", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "13px" };
