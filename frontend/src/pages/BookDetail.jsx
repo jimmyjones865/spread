@@ -56,6 +56,14 @@ export default function BookDetail() {
 
   const closeLightbox = useCallback(() => setLightboxIdx(null), []);
 
+  const handleOuterWheel = useCallback((e) => {
+    if (!rightRef.current) return;
+    if (leftRef.current?.contains(e.target)) return;
+    if (rightRef.current.contains(e.target)) return;
+    const delta = e.deltaMode === 1 ? e.deltaY * 40 : e.deltaY;
+    rightRef.current.scrollBy({ top: delta, behavior: "instant" });
+  }, []);
+
   useEffect(() => {
     if (lightboxIdx === null || !book) return;
     function onKey(e) {
@@ -155,7 +163,7 @@ export default function BookDetail() {
           {bookNav}
         </div>
       ) : (
-        <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+        <div onWheel={handleOuterWheel} style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
           <div ref={leftRef} className="no-scrollbar" style={{ width: "28%", minWidth: "240px", maxWidth: "360px", height: "100vh", overflowY: "auto", borderRight: "1px solid var(--border)", flexShrink: 0 }}>
             <div style={{ padding: "2rem 2rem 3rem" }}>
               <div style={{ marginBottom: "0" }}>

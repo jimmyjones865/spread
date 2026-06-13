@@ -1,5 +1,6 @@
 import io
 import os
+import subprocess
 from pathlib import Path
 from urllib.parse import urlparse, urlencode, parse_qs, urlunparse, urljoin
 from uuid import uuid4
@@ -109,18 +110,24 @@ def rotate_image(book_id: int, img_id: int, db: Session = Depends(get_db)):
     if not path.exists():
         raise HTTPException(404, detail="Image file not found")
 
-    pil = PILImage.open(io.BytesIO(path.read_bytes()))
-    rotated = pil.rotate(90, expand=True)
+    tmp_path = path.parent / (path.stem + "_rotating.jpg")
+    try:
+        subprocess.run(
+            ["jpegtran", "-rotate", "270", "-outfile", str(tmp_path), str(path)],
+            check=True, capture_output=True,
+        )
+        rotated_bytes = tmp_path.read_bytes()
+    except (subprocess.CalledProcessError, OSError):
+        tmp_path.unlink(missing_ok=True)
+        raise HTTPException(500, detail="Image rotation failed")
 
-    out = io.BytesIO()
-    rotated.save(out, format="JPEG", quality=92)
-    clean = out.getvalue()
+    tmp_path.unlink(missing_ok=True)
+    path.write_bytes(rotated_bytes)
+    generate_variants(rotated_bytes, path.parent, img.filename[:-4])
 
-    path.write_bytes(clean)
-    generate_variants(clean, path.parent, img.filename[:-4])
-
-    img.width, img.height = rotated.size
-    img.file_size = len(clean)
+    if img.width and img.height:
+        img.width, img.height = img.height, img.width
+    img.file_size = len(rotated_bytes)
     db.commit()
     db.refresh(img)
     return img

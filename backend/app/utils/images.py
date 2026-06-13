@@ -33,7 +33,7 @@ def sanitize_image(data: bytes) -> bytes:
     img = img.convert("RGB")
 
     out = io.BytesIO()
-    img.save(out, format="JPEG", quality=92)
+    img.save(out, format="JPEG", quality=85)
     return out.getvalue()
 
 

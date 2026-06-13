@@ -8,7 +8,7 @@ RUN npm run build
 
 # Stage 2: backend + built frontend
 FROM python:3.12-alpine
-RUN apk add --no-cache jpeg-dev zlib-dev libwebp-dev libavif-dev gcc musl-dev su-exec
+RUN apk add --no-cache jpeg-dev zlib-dev libwebp-dev libavif-dev libjpeg-turbo-utils gcc musl-dev su-exec
 WORKDIR /app
 COPY backend/requirements.txt ./
 RUN pip install --no-cache-dir --no-binary=pillow -r requirements.txt

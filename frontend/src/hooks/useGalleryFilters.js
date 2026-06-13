@@ -3,19 +3,25 @@ import useDebounce from "./useDebounce";
 import api from "../api";
 
 const _booksCache = {};
+const FILTER_KEY = "gallery_filters";
+
+function _loadFilters() {
+  try { return JSON.parse(sessionStorage.getItem(FILTER_KEY)) ?? {}; }
+  catch { return {}; }
+}
 
 export default function useGalleryFilters() {
-  const [q, setQ] = useState("");
-  const [artistId, setArtistId] = useState("");
-  const [yearFrom, setYearFrom] = useState("");
-  const [yearTo, setYearTo] = useState("");
-  const [language, setLanguage] = useState("");
-  const [activeTags, setActiveTags] = useState(() => new Set());
-  const [status, setStatus] = useState("");
-  const [signed, setSigned] = useState(false);
-  const [numbered, setNumbered] = useState(false);
-  const [sort, setSort] = useState("theme");
-  const [order, setOrder] = useState("asc");
+  const [q, setQ] = useState(() => _loadFilters().q ?? "");
+  const [artistId, setArtistId] = useState(() => _loadFilters().artistId ?? "");
+  const [yearFrom, setYearFrom] = useState(() => _loadFilters().yearFrom ?? "");
+  const [yearTo, setYearTo] = useState(() => _loadFilters().yearTo ?? "");
+  const [language, setLanguage] = useState(() => _loadFilters().language ?? "");
+  const [activeTags, setActiveTags] = useState(() => new Set(_loadFilters().activeTags ?? []));
+  const [status, setStatus] = useState(() => _loadFilters().status ?? "");
+  const [signed, setSigned] = useState(() => _loadFilters().signed ?? false);
+  const [numbered, setNumbered] = useState(() => _loadFilters().numbered ?? false);
+  const [sort, setSort] = useState(() => _loadFilters().sort ?? "theme");
+  const [order, setOrder] = useState(() => _loadFilters().order ?? "asc");
 
   const [books, setBooks] = useState([]);
   const [availableYears, setAvailableYears] = useState([]);
@@ -82,9 +88,20 @@ export default function useGalleryFilters() {
     });
   }
 
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(FILTER_KEY, JSON.stringify({
+        q, artistId, yearFrom, yearTo, language,
+        activeTags: [...activeTags],
+        status, signed, numbered, sort, order,
+      }));
+    } catch {}
+  }, [q, artistId, yearFrom, yearTo, language, activeTags, status, signed, numbered, sort, order]);
+
   function clearFilters() {
     setQ(""); setArtistId(""); setYearFrom(""); setYearTo(""); setLanguage("");
     setActiveTags(new Set()); setStatus(""); setSigned(false); setNumbered(false);
+    sessionStorage.removeItem(FILTER_KEY);
   }
 
   const activeFilterCount =

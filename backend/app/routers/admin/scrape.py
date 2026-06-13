@@ -37,8 +37,9 @@ _DATA_ATTRS = {
     "data-full", "data-lazy-src", "data-hi-res", "data-image",
 }
 
-_SIZE_SUFFIX_RE = re.compile(r'_(\d+)x\d*(?:_[a-z]+)*\.', re.IGNORECASE)  # _300x.jpg, _2048x2048.jpg, _160x160_crop_center.jpg
+_SIZE_SUFFIX_RE = re.compile(r'[-_](\d+)x\d*(?:[-_][a-z]+)*\.', re.IGNORECASE)  # _300x.jpg, -400x300.jpg, _160x160_crop_center.jpg
 _WIDTH_PARAM_RE = re.compile(r'[?&]width=\d+', re.IGNORECASE)
+_SRCSET_ENTRY_RE = re.compile(r'(?:https?:)?//[^\s,]+\.(?:jpg|jpeg|png|webp|gif)(?:[?#][^\s,]*)?', re.IGNORECASE)
 
 
 def _shopify_filename_stem(url: str) -> str | None:
@@ -104,12 +105,13 @@ class _ImageLinkParser(_HTMLParser):
     Filters out Shopify _{width}x template placeholders and CDN resize variants.
     """
 
-    def __init__(self):
+    def __init__(self, base_url: str = ""):
         super().__init__()
         self.urls: list[str] = []
         self._a_href: str | None = None
         self._in_script = False
         self._script_chunks: list[str] = []
+        self._base_url = base_url
 
     def handle_starttag(self, tag, attrs):
         attr_dict = dict(attrs)
@@ -122,6 +124,24 @@ class _ImageLinkParser(_HTMLParser):
         elif tag in ("img", "source"):
             if self._a_href:
                 self.urls.append(self._a_href)
+            # Plain src — absolute or root-relative
+            src = attr_dict.get("src") or ""
+            if src and not src.startswith("data:"):
+                if src.startswith("//") or src.startswith("http"):
+                    u = _normalize_url(src)
+                elif self._base_url and src.startswith("/"):
+                    p = urlparse(self._base_url)
+                    u = f"{p.scheme}://{p.netloc}{src}"
+                else:
+                    u = None
+                if u and _HTML_IMG_RE.match(u) and "{" not in u and not _WIDTH_PARAM_RE.search(u):
+                    self.urls.append(u)
+            # srcset — WordPress responsive images
+            srcset = attr_dict.get("srcset") or ""
+            for m in _SRCSET_ENTRY_RE.finditer(srcset):
+                u = m.group(0)
+                if "{" not in u and not _WIDTH_PARAM_RE.search(u):
+                    self.urls.append(_normalize_url(u))
             for attr in _DATA_ATTRS:
                 val = attr_dict.get(attr) or ""
                 if val and _HTML_IMG_RE.match(val) and "{" not in val and not _WIDTH_PARAM_RE.search(val):
@@ -151,8 +171,8 @@ class _ImageLinkParser(_HTMLParser):
             self._script_chunks = []
 
 
-def _extract_html_image_urls(html_text: str) -> list[str]:
-    parser = _ImageLinkParser()
+def _extract_html_image_urls(html_text: str, base_url: str = "") -> list[str]:
+    parser = _ImageLinkParser(base_url=base_url)
     try:
         parser.feed(html_text)
     except Exception:
@@ -263,6 +283,10 @@ def _parse_jina_markdown(content: str) -> dict:
 
     text_content = IMAGE_RE.sub("", content)
     text_content = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text_content)
+    text_content = re.sub(r'\*\*(.+?)\*\*', r'\1', text_content)
+    text_content = re.sub(r'__(.+?)__', r'\1', text_content)
+    text_content = re.sub(r'\*(.+?)\*', r'\1', text_content)
+    text_content = re.sub(r'_(.+?)_', r'\1', text_content)
 
     blocks = [b.strip() for b in re.split(r'\n{2,}', text_content)]
     text_blocks = [
@@ -346,7 +370,7 @@ async def scrape(body: ScrapeRequest, db: Session = Depends(get_db)):
     # deduplicate across all sources keeping the largest CDN size variant per image.
     html_urls = []
     if html_resp is not None and not isinstance(html_resp, Exception) and html_resp.is_success:
-        html_urls = _extract_html_image_urls(html_resp.text)
+        html_urls = _extract_html_image_urls(html_resp.text, url)
 
     extra_shopify = shopify_urls if isinstance(shopify_urls, list) else []
 

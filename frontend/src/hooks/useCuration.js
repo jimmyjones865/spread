@@ -23,6 +23,15 @@ export function useCuration(bookId, { onImagesAdded, onAddToBook }) {
     api.getBookScrapes(bookId).then(setHistory).catch(() => {});
   }, [bookId]);
 
+  useEffect(() => {
+    if (!sizesLoaded || !scrape) return;
+    const trimmed = url.trim();
+    setHistory(prev => prev.map(h =>
+      h.url === trimmed ? { ...h, image_count: visibleImageUrls.length } : h
+    ));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sizesLoaded]);
+
   async function doScrape(force = false) {
     if (!url.trim()) return;
     setScraping(true);
