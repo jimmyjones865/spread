@@ -9,6 +9,7 @@ from app.database import get_db
 from app.auth import require_admin
 from app.models import Book, BookImage, Tag, ImageRole
 from app.schemas import BookCreate, BookUpdate, BookOut
+from app.utils.combinations import ensure_combination
 from app.utils.slugs import unique_slug
 
 IMAGE_DIR = Path(os.getenv("IMAGE_DIR", "/data/images"))
@@ -34,6 +35,10 @@ def _sync_tags(book: Book, tag_ids: list[int], db: Session) -> None:
         tag = db.get(Tag, tag_id)
         if tag:
             book.tags.append(tag)
+    # Auto-create the tag_combinations row for the new tag set, so the new
+    # combination is ready to be ordered in the admin UI the next time you
+    # visit it.
+    ensure_combination(db, tag_ids)
 
 
 @router.get("")

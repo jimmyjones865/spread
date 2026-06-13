@@ -14,7 +14,7 @@ export default function useGalleryFilters() {
   const [status, setStatus] = useState("");
   const [signed, setSigned] = useState(false);
   const [numbered, setNumbered] = useState(false);
-  const [sort, setSort] = useState("artist");
+  const [sort, setSort] = useState("theme");
   const [order, setOrder] = useState("asc");
 
   const [books, setBooks] = useState([]);

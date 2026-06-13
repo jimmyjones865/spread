@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session, contains_eager, selectinload, joinedload
 
 from app.database import get_db
 from app.auth import SESSION_COOKIE, validate_session_token
-from app.models import Book, Artist, Tag, BookImage, Page, FooterItem, ImageRole
+from app.models import Book, Artist, Tag, TagCombination, BookImage, Page, FooterItem, ImageRole
+from app.utils.combinations import signature_for_tags
 
 router = APIRouter()
 
@@ -92,7 +93,7 @@ def list_books(
     status: str | None = None,
     signed: bool | None = None,
     numbered: bool | None = None,
-    sort: str = "artist",
+    sort: str = "theme",
     order: str = "asc",
     db: Session = Depends(get_db),
 ):
@@ -134,16 +135,49 @@ def list_books(
         for tag_name in [t.strip() for t in tags.split(",") if t.strip()]:
             query = query.filter(Book.tags.any(Tag.name == tag_name))
 
-    sort_col = {
-        "artist": Artist.name,
-        "title": Book.title,
-        "year": Book.year,
-        "publisher": Book.publisher,
-    }.get(sort, Artist.name)
-
-    query = query.order_by(sort_col.desc() if order == "desc" else sort_col.asc())
-
     books = query.all()
+
+    if sort == "theme":
+        # One dict lookup per book. Untagged books fall to the tail,
+        # artist-sorted, by way of the (1, ...) prefix in the key.
+        combo_order = {
+            c.signature: c.sort_order
+            for c in db.query(TagCombination).all()
+        }
+
+        def theme_key(b: Book):
+            tag_ids = [t.id for t in b.tags]
+            if not tag_ids:
+                return (1, b.artist.name.lower(), b.title.lower())
+            sig = signature_for_tags(b.tags)
+            return (
+                0,
+                combo_order.get(sig, 1_000_000),
+                b.artist.name.lower(),
+                b.title.lower(),
+            )
+
+        books = sorted(books, key=theme_key)
+    else:
+        # Map sort key -> callable that returns the sortable attribute.
+        # Coalesce nullable strings/ints to a stable fallback so untagged /
+        # unpublished / undated books cluster at the head of the asc sort
+        # (or tail of desc), not at random positions in the middle.
+        def _key(b: Book):
+            if sort == "artist":
+                return (b.artist.name or "").lower()
+            if sort == "title":
+                return (b.title or "").lower()
+            if sort == "year":
+                return b.year or 0
+            if sort == "publisher":
+                return (b.publisher or "").lower()
+            return (b.artist.name or "").lower()
+
+        books = sorted(books, key=_key)
+        if order == "desc":
+            books = list(reversed(books))
+
     return [_book_list_item(b, b.artist.name, b.artist.slug) for b in books]
 
 

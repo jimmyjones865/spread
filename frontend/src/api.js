@@ -73,6 +73,11 @@ export default {
   updateTag:  (id, name)   => put(`/api/admin/tags/${id}`, { name }),
   deleteTag:  (id)         => del(`/api/admin/tags/${id}`),
 
+  // Tag combinations (admin)
+  getCombinations:      ()     => get("/api/admin/combinations"),
+  reorderCombinations:  (ids)  => post("/api/admin/combinations/reorder", { ids }),
+  ensureCombination:    (tagIds) => post("/api/admin/combinations/ensure", { tag_ids: tagIds }),
+
   // Pages (admin)
   getPages:   ()         => get("/api/admin/pages"),
   getPage:    (id)       => get(`/api/admin/pages/${id}`),
