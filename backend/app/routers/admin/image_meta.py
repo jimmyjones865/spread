@@ -16,6 +16,9 @@ class ImageMetaRequest(BaseModel):
     urls: list[str]
 
 
+_CONFIRMED_GONE = {404, 410, 451}
+
+
 async def _head_one(client: httpx.AsyncClient, url: str) -> dict:
     safe, _ = is_safe_url(url)
     if not safe:
@@ -29,7 +32,10 @@ async def _head_one(client: httpx.AsyncClient, url: str) -> dict:
                 "content_length": int(cl) if cl and cl.isdigit() else None,
                 "reachable": True,
             }
-        return {"url": url, "content_length": None, "reachable": False}
+        # 404/410/451 = confirmed gone; 403/401/429/5xx = can't probe but may exist
+        if r.status_code in _CONFIRMED_GONE:
+            return {"url": url, "content_length": None, "reachable": False}
+        return {"url": url, "content_length": None, "reachable": True}
     except Exception:
         return {"url": url, "content_length": None, "reachable": False}
 

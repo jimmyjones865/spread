@@ -47,7 +47,7 @@ export function useCuration(bookId, { onImagesAdded, onAddToBook }) {
       api.getBookScrapes(bookId).then(setHistory).catch(() => {});
       setImageSizes({});
       setImageReachable({});
-      setImageDims({});
+      setImageDims(result.image_dims ?? {});
       if (result.image_urls.length > 0) {
         api.imageMeta(result.image_urls).then(({ sizes }) => {
           const sizeMap = {};

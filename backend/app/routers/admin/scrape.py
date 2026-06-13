@@ -108,6 +108,7 @@ class _ImageLinkParser(_HTMLParser):
     def __init__(self, base_url: str = ""):
         super().__init__()
         self.urls: list[str] = []
+        self.dims: dict[str, tuple[int, int]] = {}  # url → (w, h) from <img> attrs
         self._a_href: str | None = None
         self._in_script = False
         self._script_chunks: list[str] = []
@@ -136,6 +137,10 @@ class _ImageLinkParser(_HTMLParser):
                     u = None
                 if u and _HTML_IMG_RE.match(u) and "{" not in u and not _WIDTH_PARAM_RE.search(u):
                     self.urls.append(u)
+                    w_attr = attr_dict.get("width", "")
+                    h_attr = attr_dict.get("height", "")
+                    if w_attr.isdigit() and h_attr.isdigit():
+                        self.dims[u] = (int(w_attr), int(h_attr))
             # srcset — WordPress responsive images
             srcset = attr_dict.get("srcset") or ""
             for m in _SRCSET_ENTRY_RE.finditer(srcset):
@@ -171,13 +176,13 @@ class _ImageLinkParser(_HTMLParser):
             self._script_chunks = []
 
 
-def _extract_html_image_urls(html_text: str, base_url: str = "") -> list[str]:
+def _extract_html_image_urls(html_text: str, base_url: str = "") -> tuple[list[str], dict[str, tuple[int, int]]]:
     parser = _ImageLinkParser(base_url=base_url)
     try:
         parser.feed(html_text)
     except Exception:
         pass
-    return parser.urls
+    return parser.urls, parser.dims
 
 
 async def _fetch_html_safe(client: httpx.AsyncClient, url: str) -> httpx.Response | None:
@@ -369,13 +374,21 @@ async def scrape(body: ScrapeRequest, db: Session = Depends(get_db)):
     # Collect additional URLs from raw HTML and Shopify product JSON, then
     # deduplicate across all sources keeping the largest CDN size variant per image.
     html_urls = []
+    html_dims: dict[str, tuple[int, int]] = {}
     if html_resp is not None and not isinstance(html_resp, Exception) and html_resp.is_success:
-        html_urls = _extract_html_image_urls(html_resp.text, url)
+        html_urls, html_dims = _extract_html_image_urls(html_resp.text, url)
 
     extra_shopify = shopify_urls if isinstance(shopify_urls, list) else []
 
     all_urls = parsed_data["image_urls"] + html_urls + extra_shopify
     parsed_data["image_urls"] = _pick_best_variants(all_urls)
+
+    image_dims = {}
+    for u in parsed_data["image_urls"]:
+        if u in html_dims:
+            w, h = html_dims[u]
+            image_dims[u] = {"w": w, "h": h}
+    parsed_data["image_dims"] = image_dims
 
     content_json = json.dumps(parsed_data)
     now = datetime.utcnow()
