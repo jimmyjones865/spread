@@ -58,14 +58,12 @@ export default function BookDetail() {
 
   useEffect(() => {
     function handler(e) {
+      if (leftRef.current?.contains(e.target)) return;
+      if (rightRef.current?.contains(e.target)) return;
       e.preventDefault();
       if (!rightRef.current) return;
       const delta = e.deltaMode === 1 ? e.deltaY * 40 : e.deltaY;
-      if (leftRef.current?.contains(e.target)) {
-        leftRef.current.scrollBy({ top: delta, behavior: "instant" });
-      } else {
-        rightRef.current.scrollBy({ top: delta, behavior: "instant" });
-      }
+      rightRef.current.scrollBy({ top: delta, behavior: "instant" });
     }
     document.addEventListener("wheel", handler, { passive: false });
     return () => document.removeEventListener("wheel", handler);
