@@ -13,10 +13,10 @@ export default function TextBlock({ text, inDesc, inColophon, onDescToggle, onCo
       borderRadius: "4px",
       padding: "0.6rem 0.75rem",
     }}>
-      <p style={{ margin: "0 0 0.5rem", fontSize: "13px", color: "var(--text)", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
+      <p style={{ margin: "0 0 0.5rem", fontSize: "0.875rem", color: "var(--text)", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
         {preview}
         {text.length > 200 && (
-          <button onClick={() => setExpanded(v => !v)} style={{ ...ghostBtn, marginLeft: "0.5rem", padding: "0 4px", fontSize: "12px" }}>
+          <button onClick={() => setExpanded(v => !v)} style={{ ...ghostBtn, marginLeft: "0.5rem", padding: "0 4px", fontSize: "0.8125rem" }}>
             {expanded ? "less" : "more"}
           </button>
         )}

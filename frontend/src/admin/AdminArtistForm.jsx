@@ -108,7 +108,7 @@ export default function AdminArtistForm() {
 function Field({ label, children }) {
   return (
     <div style={{ marginBottom: "1rem" }}>
-      <label style={{ display: "block", fontSize: "13px", color: "var(--text-muted)", marginBottom: "0.3rem" }}>{label}</label>
+      <label style={{ display: "block", fontSize: "0.875rem", color: "var(--text-muted)", marginBottom: "0.3rem" }}>{label}</label>
       {children}
     </div>
   );
@@ -118,7 +118,7 @@ function Input({ value, onChange, ...props }) {
   return <input value={value} onChange={e => onChange(e.target.value)} style={inputStyle} {...props} />;
 }
 
-const inputStyle = { width: "100%", padding: "0.5rem 0.6rem", background: "var(--bg-highlight)", border: "1px solid var(--border)", borderRadius: "4px", color: "var(--text)", fontFamily: "var(--font-body)", fontSize: "14px", boxSizing: "border-box" };
-const h1 = { margin: 0, fontSize: "22px", fontWeight: 600, color: "var(--text-bright)" };
-const backBtn = { background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "14px", padding: 0 };
-const primaryBtn = { background: "var(--accent-dim)", color: "var(--text-bright)", border: "none", borderRadius: "4px", padding: "0.6rem 1.5rem", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "14px" };
+const inputStyle = { width: "100%", padding: "0.5rem 0.6rem", background: "var(--bg-highlight)", border: "1px solid var(--border)", borderRadius: "4px", color: "var(--text)", fontFamily: "var(--font-body)", fontSize: "0.9375rem", boxSizing: "border-box" };
+const h1 = { margin: 0, fontSize: "1.5rem", fontWeight: 600, color: "var(--text-bright)" };
+const backBtn = { background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "0.9375rem", padding: 0 };
+const primaryBtn = { background: "var(--accent-dim)", color: "var(--text-bright)", border: "none", borderRadius: "4px", padding: "0.6rem 1.5rem", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "0.9375rem" };

@@ -31,10 +31,10 @@ export default function AdminLayout() {
           display: "flex", alignItems: "center", padding: "0 1rem", height: "48px",
           flexShrink: 0,
         }}>
-          <span style={{ fontWeight: 700, fontSize: "16px", color: "var(--text-bright)", flex: 1 }}>Spread</span>
+          <span style={{ fontWeight: 700, fontSize: "1.0625rem", color: "var(--text-bright)", flex: 1 }}>Spread</span>
           <button
             onClick={() => setMenuOpen(v => !v)}
-            style={{ background: "none", border: "none", color: "var(--text)", cursor: "pointer", fontSize: "22px", padding: "0 0.25rem", lineHeight: 1 }}
+            style={{ background: "none", border: "none", color: "var(--text)", cursor: "pointer", fontSize: "1.4375rem", padding: "0 0.25rem", lineHeight: 1 }}
           >
             {menuOpen ? "✕" : "≡"}
           </button>
@@ -51,7 +51,7 @@ export default function AdminLayout() {
                 key={to} to={to} end={end}
                 onClick={() => setMenuOpen(false)}
                 style={({ isActive }) => ({
-                  display: "block", padding: "0.85rem 1.25rem", fontSize: "16px",
+                  display: "block", padding: "0.85rem 1.25rem", fontSize: "1.0625rem",
                   color: isActive ? "var(--accent)" : "var(--text)",
                   textDecoration: "none", fontWeight: isActive ? 600 : 400,
                   borderBottom: "1px solid var(--border)",
@@ -64,14 +64,14 @@ export default function AdminLayout() {
               <Link
                 to="/"
                 onClick={() => setMenuOpen(false)}
-                style={{ fontSize: "14px", color: "var(--text-muted)", textDecoration: "none" }}
+                style={{ fontSize: "0.9375rem", color: "var(--text-muted)", textDecoration: "none" }}
               >
                 View site ↗
               </Link>
               <ThemeToggle />
               <button
                 onClick={async () => { await logout(); navigate("/admin"); setMenuOpen(false); }}
-                style={{ background: "none", border: "none", color: "var(--text-muted)", padding: 0, cursor: "pointer", fontSize: "14px", fontFamily: "var(--font-body)", textAlign: "left" }}
+                style={{ background: "none", border: "none", color: "var(--text-muted)", padding: 0, cursor: "pointer", fontSize: "0.9375rem", fontFamily: "var(--font-body)", textAlign: "left" }}
               >
                 Sign out
               </button>
@@ -94,7 +94,7 @@ export default function AdminLayout() {
         flexDirection: "column", padding: "1.5rem 0", overflowY: "auto",
       }}>
         <span style={{
-          padding: "0 1.25rem 1.5rem", fontSize: "16px",
+          padding: "0 1.25rem 1.5rem", fontSize: "1.0625rem",
           fontWeight: 700, color: "var(--text-bright)", letterSpacing: "0.02em",
         }}>
           Spread
@@ -105,7 +105,7 @@ export default function AdminLayout() {
           </NavLink>
         ))}
         <div style={{ marginTop: "auto", padding: "1rem 1.25rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-          <Link to="/" style={{ fontSize: "12px", color: "var(--text-muted)", textDecoration: "none", opacity: 0.7 }}>
+          <Link to="/" style={{ fontSize: "0.8125rem", color: "var(--text-muted)", textDecoration: "none", opacity: 0.7 }}>
             View site ↗
           </Link>
           <ThemeToggle />
@@ -113,7 +113,7 @@ export default function AdminLayout() {
             onClick={async () => { await logout(); navigate("/admin"); }}
             style={{
               background: "none", border: "none", color: "var(--text-muted)",
-              padding: "4px 0", cursor: "pointer", fontSize: "12px",
+              padding: "4px 0", cursor: "pointer", fontSize: "0.8125rem",
               fontFamily: "var(--font-body)", textAlign: "left",
               opacity: 0.7,
             }}
@@ -131,7 +131,7 @@ export default function AdminLayout() {
 
 function navLinkStyle(isActive) {
   return {
-    display: "block", padding: "0.5rem 1.25rem", fontSize: "14px",
+    display: "block", padding: "0.5rem 1.25rem", fontSize: "0.9375rem",
     color: isActive ? "var(--accent)" : "var(--text-muted)",
     textDecoration: "none", fontWeight: isActive ? 500 : 400,
     borderLeft: isActive ? "2px solid var(--accent)" : "2px solid transparent",

@@ -50,16 +50,16 @@ export default function BookCard({ book, onClick, priority = false }) {
           </picture>
         ) : (
           <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ fontSize: "20px", color: "var(--text-muted)", fontWeight: 700, letterSpacing: "0.05em" }}>
+            <span style={{ fontSize: "1.3125rem", color: "var(--text-muted)", fontWeight: 700, letterSpacing: "0.05em" }}>
               {book.title.slice(0, 2).toUpperCase()}
             </span>
           </div>
         )}
       </div>
-      <div style={{ fontSize: "12px", color: "var(--text)", fontWeight: 700, lineHeight: 1.3, marginBottom: "2px" }}>
+      <div style={{ fontSize: "0.8125rem", color: "var(--text)", fontWeight: 700, lineHeight: 1.3, marginBottom: "2px" }}>
         {book.title}
       </div>
-      <div style={{ fontSize: "11px", color: "var(--text-muted)", lineHeight: 1.3 }}>
+      <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", lineHeight: 1.3 }}>
         {book.artist_name}
       </div>
     </div>

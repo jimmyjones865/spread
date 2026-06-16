@@ -1,7 +1,7 @@
 function FilterSection({ label, children }) {
   return (
     <div style={{ marginBottom: "1.25rem" }}>
-      <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", fontWeight: 500, marginBottom: "0.5rem" }}>
+      <div style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", fontWeight: 500, marginBottom: "0.5rem" }}>
         {label}
       </div>
       {children}
@@ -12,18 +12,18 @@ function FilterSection({ label, children }) {
 const panelSelect = {
   width: "100%", padding: "0.4rem 0.5rem", background: "var(--bg-elevated)",
   border: "1px solid var(--border)", borderRadius: "4px",
-  color: "var(--text)", fontFamily: "var(--font-body)", fontSize: "13px", cursor: "pointer",
+  color: "var(--text)", fontFamily: "var(--font-body)", fontSize: "0.875rem", cursor: "pointer",
   boxSizing: "border-box",
 };
 const panelInput = {
   width: "100%", padding: "0.4rem 0.5rem", background: "var(--bg-elevated)",
   border: "1px solid var(--border)", borderRadius: "4px",
-  color: "var(--text)", fontFamily: "var(--font-body)", fontSize: "13px", boxSizing: "border-box",
+  color: "var(--text)", fontFamily: "var(--font-body)", fontSize: "0.875rem", boxSizing: "border-box",
 };
-const checkLabel = { display: "inline-flex", alignItems: "center", gap: "0.35rem", fontSize: "13px", color: "var(--text-muted)", cursor: "pointer" };
-const orderBtn = { background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "4px", padding: "0.4rem 0.6rem", cursor: "pointer", color: "var(--text-muted)", fontFamily: "var(--font-body)", fontSize: "13px" };
-const clearBtn = { background: "none", border: "none", padding: "0 4px", cursor: "pointer", color: "var(--text-muted)", fontFamily: "var(--font-body)", fontSize: "12px", textDecoration: "underline" };
-const closeBtn = { background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "20px", lineHeight: 1, padding: "0 2px" };
+const checkLabel = { display: "inline-flex", alignItems: "center", gap: "0.35rem", fontSize: "0.875rem", color: "var(--text-muted)", cursor: "pointer" };
+const orderBtn = { background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "4px", padding: "0.4rem 0.6rem", cursor: "pointer", color: "var(--text-muted)", fontFamily: "var(--font-body)", fontSize: "0.875rem" };
+const clearBtn = { background: "none", border: "none", padding: "0 4px", cursor: "pointer", color: "var(--text-muted)", fontFamily: "var(--font-body)", fontSize: "0.8125rem", textDecoration: "underline" };
+const closeBtn = { background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "1.3125rem", lineHeight: 1, padding: "0 2px" };
 
 export default function FilterPanel({
   open, onClose, onClear, activeFilterCount,
@@ -51,7 +51,7 @@ export default function FilterPanel({
         overflowY: "auto", padding: "1.5rem", boxSizing: "border-box",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.75rem" }}>
-          <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-bright)" }}>Filters</span>
+          <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--text-bright)" }}>Filters</span>
           <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
             {activeFilterCount > 0 && (
               <button onClick={onClear} style={clearBtn}>Clear all</button>
@@ -73,7 +73,7 @@ export default function FilterPanel({
               <option value="">From</option>
               {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
             </select>
-            <span style={{ color: "var(--text-muted)", fontSize: "13px" }}>–</span>
+            <span style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>–</span>
             <select value={yearTo} onChange={e => setYearTo(e.target.value)} style={{ ...panelSelect, flex: 1 }}>
               <option value="">To</option>
               {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
@@ -94,7 +94,7 @@ export default function FilterPanel({
                   onClick={() => toggleTag(t.name)}
                   style={{
                     padding: "3px 8px", borderRadius: "10px", border: "1px solid",
-                    cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "11px",
+                    cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "0.75rem",
                     background: activeTags.has(t.name) ? "var(--accent-dim)" : "var(--bg-elevated)",
                     color: activeTags.has(t.name) ? "var(--text-bright)" : "var(--text-muted)",
                     borderColor: activeTags.has(t.name) ? "var(--accent)" : "var(--border)",
@@ -156,7 +156,7 @@ export default function FilterPanel({
             onChange={e => updateCardWidth(parseInt(e.target.value))}
             style={{ width: "100%", cursor: "pointer" }}
           />
-          <div style={{ fontSize: "11px", color: "var(--text-muted)", textAlign: "right", marginTop: "2px" }}>
+          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textAlign: "right", marginTop: "2px" }}>
             {cardWidth}px
           </div>
         </FilterSection>

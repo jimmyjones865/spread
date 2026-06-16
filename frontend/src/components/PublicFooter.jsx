@@ -33,5 +33,5 @@ export default function PublicFooter() {
   );
 }
 
-const footerLink = { fontSize: "13px", color: "var(--text-muted)", textDecoration: "none" };
-const footerText = { fontSize: "13px", color: "var(--text-muted)" };
+const footerLink = { fontSize: "0.875rem", color: "var(--text-muted)", textDecoration: "none" };
+const footerText = { fontSize: "0.875rem", color: "var(--text-muted)" };

@@ -62,7 +62,7 @@ export default function AdminTags() {
     <div style={{ maxWidth: "760px" }}>
       <h1 style={h1}>Tags</h1>
 
-      {error && <p style={{ color: "var(--danger)", fontSize: "14px" }}>{error}</p>}
+      {error && <p style={{ color: "var(--danger)", fontSize: "0.9375rem" }}>{error}</p>}
 
       <form onSubmit={create} style={{ display: "flex", gap: "0.5rem", marginBottom: "1.5rem" }}>
         <input
@@ -91,8 +91,8 @@ export default function AdminTags() {
                   />
                 ) : (
                   <>
-                    <div style={{ fontSize: "14px", color: "var(--text)", fontWeight: 500 }}>{tag.name}</div>
-                    <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>{tag.book_count} {tag.book_count === 1 ? "book" : "books"}</div>
+                    <div style={{ fontSize: "0.9375rem", color: "var(--text)", fontWeight: 500 }}>{tag.name}</div>
+                    <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>{tag.book_count} {tag.book_count === 1 ? "book" : "books"}</div>
                   </>
                 )}
               </td>
@@ -114,8 +114,8 @@ export default function AdminTags() {
         </tbody>
       </table>
 
-      <h2 style={{ ...h1, fontSize: "18px", marginTop: "2.5rem", marginBottom: "0.5rem" }}>Tag combinations</h2>
-      <p style={{ color: "var(--text-muted)", fontSize: "13px", margin: "0 0 1rem" }}>
+      <h2 style={{ ...h1, fontSize: "1.25rem", marginTop: "2.5rem", marginBottom: "0.5rem" }}>Tag combinations</h2>
+      <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", margin: "0 0 1rem" }}>
         Order of the gallery when sorted by <strong>Theme</strong>. New combinations are added at the bottom when you save a book — use ↑↓ to set their position.
       </p>
 
@@ -142,8 +142,8 @@ export default function AdminTags() {
                 >↓</button>
               </td>
               <td style={{ padding: "0.6rem 0.5rem" }}>
-                <div style={{ fontSize: "14px", color: "var(--text)", fontWeight: 500 }}>{comboLabel(c)}</div>
-                <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                <div style={{ fontSize: "0.9375rem", color: "var(--text)", fontWeight: 500 }}>{comboLabel(c)}</div>
+                <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>
                   {c.book_count} {c.book_count === 1 ? "book" : "books"}
                 </div>
               </td>
@@ -163,8 +163,8 @@ export default function AdminTags() {
   );
 }
 
-const h1 = { margin: "0 0 1.5rem", fontSize: "22px", fontWeight: 600, color: "var(--text-bright)" };
-const inputStyle = { flex: 1, padding: "0.5rem 0.6rem", background: "var(--bg-highlight)", border: "1px solid var(--border)", borderRadius: "4px", color: "var(--text)", fontFamily: "var(--font-body)", fontSize: "14px" };
-const primaryBtn = { background: "var(--accent-dim)", color: "var(--text-bright)", border: "none", borderRadius: "4px", padding: "0.5rem 1rem", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "14px" };
-const ghostBtn = { background: "none", color: "var(--text-muted)", border: "none", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "13px", padding: "0.25rem 0.5rem" };
-const arrowBtn = { background: "none", color: "var(--text-muted)", border: "1px solid var(--border)", borderRadius: "3px", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "13px", padding: "0.1rem 0.4rem", marginRight: "0.25rem" };
+const h1 = { margin: "0 0 1.5rem", fontSize: "1.5rem", fontWeight: 600, color: "var(--text-bright)" };
+const inputStyle = { flex: 1, padding: "0.5rem 0.6rem", background: "var(--bg-highlight)", border: "1px solid var(--border)", borderRadius: "4px", color: "var(--text)", fontFamily: "var(--font-body)", fontSize: "0.9375rem" };
+const primaryBtn = { background: "var(--accent-dim)", color: "var(--text-bright)", border: "none", borderRadius: "4px", padding: "0.5rem 1rem", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "0.9375rem" };
+const ghostBtn = { background: "none", color: "var(--text-muted)", border: "none", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "0.875rem", padding: "0.25rem 0.5rem" };
+const arrowBtn = { background: "none", color: "var(--text-muted)", border: "1px solid var(--border)", borderRadius: "3px", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "0.875rem", padding: "0.1rem 0.4rem", marginRight: "0.25rem" };

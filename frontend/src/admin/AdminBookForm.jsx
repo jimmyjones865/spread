@@ -130,7 +130,7 @@ export default function AdminBookForm() {
             <button type="submit" disabled={saving} style={primaryBtn}>
               {saving ? "Saving…" : isNew ? "Create book" : "Save changes"}
             </button>
-            {saved && <span style={{ fontSize: "13px", color: "var(--accent)" }}>✓ Saved</span>}
+            {saved && <span style={{ fontSize: "0.875rem", color: "var(--accent)" }}>✓ Saved</span>}
           </div>
         </div>
       </form>
@@ -167,8 +167,8 @@ export default function AdminBookForm() {
   );
 }
 
-const checkLabel = { display: "inline-flex", alignItems: "center", gap: "0.4rem", fontSize: "14px", color: "var(--text)", marginRight: "1.5rem", cursor: "pointer" };
-const h1 = { margin: 0, fontSize: "22px", fontWeight: 600, color: "var(--text-bright)" };
-const backBtn = { background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "14px", padding: 0 };
-const primaryBtn = { background: "var(--accent-dim)", color: "var(--text-bright)", border: "none", borderRadius: "4px", padding: "0.6rem 1.5rem", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "14px" };
-const navBtn = { background: "none", border: "1px solid var(--border)", color: "var(--text-muted)", borderRadius: "4px", padding: "0.3rem 0.75rem", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "13px" };
+const checkLabel = { display: "inline-flex", alignItems: "center", gap: "0.4rem", fontSize: "0.9375rem", color: "var(--text)", marginRight: "1.5rem", cursor: "pointer" };
+const h1 = { margin: 0, fontSize: "1.5rem", fontWeight: 600, color: "var(--text-bright)" };
+const backBtn = { background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "0.9375rem", padding: 0 };
+const primaryBtn = { background: "var(--accent-dim)", color: "var(--text-bright)", border: "none", borderRadius: "4px", padding: "0.6rem 1.5rem", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "0.9375rem" };
+const navBtn = { background: "none", border: "1px solid var(--border)", color: "var(--text-muted)", borderRadius: "4px", padding: "0.3rem 0.75rem", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "0.875rem" };

@@ -28,7 +28,7 @@ export default function AdminLogin() {
         background: "var(--bg-elevated)", border: "1px solid var(--border)",
         borderRadius: "8px", padding: "2.5rem", width: "320px",
       }}>
-        <h1 style={{ margin: "0 0 2rem", fontSize: "18px", color: "var(--text-bright)", fontWeight: 600 }}>
+        <h1 style={{ margin: "0 0 2rem", fontSize: "1.25rem", color: "var(--text-bright)", fontWeight: 600 }}>
           Spread
         </h1>
         <input
@@ -41,17 +41,17 @@ export default function AdminLogin() {
             width: "100%", padding: "0.6rem 0.75rem", marginBottom: "1rem",
             background: "var(--bg-highlight)", border: "1px solid var(--border)",
             borderRadius: "4px", color: "var(--text)", fontFamily: "var(--font-body)",
-            fontSize: "14px", boxSizing: "border-box",
+            fontSize: "0.9375rem", boxSizing: "border-box",
           }}
         />
-        {error && <p style={{ color: "var(--danger)", fontSize: "13px", marginBottom: "1rem" }}>{error}</p>}
+        {error && <p style={{ color: "var(--danger)", fontSize: "0.875rem", marginBottom: "1rem" }}>{error}</p>}
         <button
           type="submit"
           disabled={loading}
           style={{
             width: "100%", padding: "0.6rem", background: "var(--accent-dim)",
             color: "var(--text-bright)", border: "none", borderRadius: "4px",
-            cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "14px",
+            cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "0.9375rem",
           }}
         >
           {loading ? "…" : "Login"}

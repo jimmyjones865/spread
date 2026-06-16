@@ -35,7 +35,7 @@ export default function ArtistPage() {
           <ThemeToggle />
         </div>
 
-        <h1 style={{ margin: "1.5rem 0 0.35rem", fontSize: "28px", fontWeight: 700, color: "var(--text-bright)" }}>
+        <h1 style={{ margin: "1.5rem 0 0.35rem", fontSize: "1.875rem", fontWeight: 700, color: "var(--text-bright)" }}>
           {artist.name}
         </h1>
 
@@ -59,7 +59,7 @@ export default function ArtistPage() {
         </div>
 
         {artist.bio && (
-          <p style={{ maxWidth: "600px", fontSize: "14px", color: "var(--text)", lineHeight: 1.7, whiteSpace: "pre-wrap", marginBottom: "2.5rem", marginTop: "0.25rem" }}>
+          <p style={{ maxWidth: "600px", fontSize: "0.9375rem", color: "var(--text)", lineHeight: 1.7, whiteSpace: "pre-wrap", marginBottom: "2.5rem", marginTop: "0.25rem" }}>
             {artist.bio}
           </p>
         )}
@@ -84,23 +84,23 @@ export default function ArtistPage() {
                     </picture>
                   ) : (
                     <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <span style={{ fontSize: "20px", color: "var(--text-muted)", fontWeight: 700 }}>
+                      <span style={{ fontSize: "1.3125rem", color: "var(--text-muted)", fontWeight: 700 }}>
                         {book.title.slice(0, 2).toUpperCase()}
                       </span>
                     </div>
                   )}
                 </div>
-                <div style={{ fontSize: "12px", color: "var(--text)", fontWeight: 700, lineHeight: 1.3, marginBottom: "2px" }}>
+                <div style={{ fontSize: "0.8125rem", color: "var(--text)", fontWeight: 700, lineHeight: 1.3, marginBottom: "2px" }}>
                   {book.title}
                 </div>
                 {book.year && (
-                  <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>{book.year}</div>
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{book.year}</div>
                 )}
               </div>
             ))}
           </div>
         ) : (
-          <p style={{ color: "var(--text-muted)", fontSize: "14px" }}>No books in collection.</p>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.9375rem" }}>No books in collection.</p>
         )}
       </div>
 
@@ -109,6 +109,6 @@ export default function ArtistPage() {
   );
 }
 
-const backLink = { fontSize: "13px", color: "var(--text-muted)", textDecoration: "none" };
-const muted = { fontSize: "14px", color: "var(--text-muted)" };
-const linkStyle = { fontSize: "14px", color: "var(--accent)", textDecoration: "none" };
+const backLink = { fontSize: "0.875rem", color: "var(--text-muted)", textDecoration: "none" };
+const muted = { fontSize: "0.9375rem", color: "var(--text-muted)" };
+const linkStyle = { fontSize: "0.9375rem", color: "var(--accent)", textDecoration: "none" };

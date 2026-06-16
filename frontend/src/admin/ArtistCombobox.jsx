@@ -29,7 +29,7 @@ export default function ArtistCombobox({ artists, value, onChange, onArtistsChan
   }
 
   if (value && !selected) {
-    return <span style={{ fontSize: "13px", color: "var(--text-muted)" }}>Loading…</span>;
+    return <span style={{ fontSize: "0.875rem", color: "var(--text-muted)" }}>Loading…</span>;
   }
 
   if (selected) {

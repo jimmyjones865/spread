@@ -3,11 +3,11 @@ import ImageCard from "./ImageCard";
 import TextBlock from "./TextBlock";
 import { ghostBtn } from "./CurationStyles";
 
-const inputStyle = { flex: 1, padding: "0.5rem 0.6rem", background: "var(--bg-highlight)", border: "1px solid var(--border)", borderRadius: "4px", color: "var(--text)", fontFamily: "var(--font-body)", fontSize: "14px", width: "100%", boxSizing: "border-box" };
-const actionBtn = { background: "var(--accent-dim)", color: "var(--text-bright)", border: "none", borderRadius: "4px", padding: "0.5rem 1rem", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "13px", whiteSpace: "nowrap" };
-const sectionLabel = { fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", fontWeight: 500 };
-const previewStyle = { width: "100%", height: "120px", resize: "vertical", padding: "0.5rem 0.6rem", background: "var(--bg-highlight)", border: "1px solid var(--border)", borderRadius: "4px", color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: "12px", boxSizing: "border-box" };
-const errorStyle = { color: "var(--danger)", fontSize: "13px", margin: "0 0 0.75rem" };
+const inputStyle = { flex: 1, padding: "0.5rem 0.6rem", background: "var(--bg-highlight)", border: "1px solid var(--border)", borderRadius: "4px", color: "var(--text)", fontFamily: "var(--font-body)", fontSize: "0.9375rem", width: "100%", boxSizing: "border-box" };
+const actionBtn = { background: "var(--accent-dim)", color: "var(--text-bright)", border: "none", borderRadius: "4px", padding: "0.5rem 1rem", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "0.875rem", whiteSpace: "nowrap" };
+const sectionLabel = { fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", fontWeight: 500 };
+const previewStyle = { width: "100%", height: "120px", resize: "vertical", padding: "0.5rem 0.6rem", background: "var(--bg-highlight)", border: "1px solid var(--border)", borderRadius: "4px", color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: "0.8125rem", boxSizing: "border-box" };
+const errorStyle = { color: "var(--danger)", fontSize: "0.875rem", margin: "0 0 0.75rem" };
 
 function SaveBar({ c, style }) {
   return (
@@ -19,8 +19,8 @@ function SaveBar({ c, style }) {
             : "Saving…"
           : "Add to book & save"}
       </button>
-      {c.addDone && <span style={{ fontSize: "13px", color: "var(--accent)" }}>Saved</span>}
-      {c.addError && <span style={{ fontSize: "13px", color: "var(--danger)" }}>{c.addError}</span>}
+      {c.addDone && <span style={{ fontSize: "0.875rem", color: "var(--accent)" }}>Saved</span>}
+      {c.addError && <span style={{ fontSize: "0.875rem", color: "var(--danger)" }}>{c.addError}</span>}
     </div>
   );
 }
@@ -54,15 +54,15 @@ export default function CurationPanel({ bookId, onImagesAdded, onAddToBook }) {
           <span style={sectionLabel}>Previously scraped</span>
           <div style={{ marginTop: "0.35rem", display: "flex", flexDirection: "column", gap: "0.2rem" }}>
             {c.history.map(s => (
-              <div key={s.url} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "12px" }}>
+              <div key={s.url} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem" }}>
                 <button
                   onClick={() => c.setUrl(s.url)}
                   title={s.url}
-                  style={{ flex: 1, minWidth: 0, textAlign: "left", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", background: "none", border: "none", padding: 0, cursor: "pointer", color: "var(--accent)", fontFamily: "var(--font-body)", fontSize: "12px" }}
+                  style={{ flex: 1, minWidth: 0, textAlign: "left", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", background: "none", border: "none", padding: 0, cursor: "pointer", color: "var(--accent)", fontFamily: "var(--font-body)", fontSize: "0.8125rem" }}
                 >
                   {s.url}
                 </button>
-                <span style={{ color: "var(--text-muted)", whiteSpace: "nowrap", fontSize: "11px", flexShrink: 0 }}>
+                <span style={{ color: "var(--text-muted)", whiteSpace: "nowrap", fontSize: "0.75rem", flexShrink: 0 }}>
                   {new Date(s.scraped_at + "Z").toLocaleDateString("en-GB")} · {s.image_count} imgs
                 </span>
                 <a href={s.url} target="_blank" rel="noreferrer" style={{ color: "var(--text-muted)", textDecoration: "none", flexShrink: 0 }}>↗</a>
@@ -75,7 +75,7 @@ export default function CurationPanel({ bookId, onImagesAdded, onAddToBook }) {
       {c.scrapeError && <p style={errorStyle}>{c.scrapeError}</p>}
 
       {c.scrape && (
-        <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: "0 0 1rem" }}>
+        <p style={{ fontSize: "0.8125rem", color: "var(--text-muted)", margin: "0 0 1rem" }}>
           {c.scrape.from_cache ? "Cached" : "Fetched"} ·{" "}
           {new Date(c.scrape.scraped_at + "Z").toLocaleString("en-GB")} ·{" "}
           {c.scrape.image_urls.length} images · {c.scrape.text_blocks.length} text blocks
@@ -89,7 +89,7 @@ export default function CurationPanel({ bookId, onImagesAdded, onAddToBook }) {
           <div style={{ display: "flex", alignItems: "baseline", gap: "0.75rem", marginBottom: "0.5rem" }}>
             <span style={sectionLabel}>Images</span>
             {c.hiddenCount > 0 && (
-              <span style={{ fontSize: "11px", color: "var(--text-muted)", opacity: 0.7 }}>
+              <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", opacity: 0.7 }}>
                 {c.hiddenCount} hidden (too small)
               </span>
             )}

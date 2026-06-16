@@ -63,9 +63,9 @@ export default function Gallery() {
 
       <div style={{ flex: 1, padding: isMobile ? "0 1.5rem 3rem" : "0 2.5rem 3rem" }}>
         {f.loading ? (
-          <p style={{ color: "var(--text-muted)", fontSize: "14px" }}>Loading…</p>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.9375rem" }}>Loading…</p>
         ) : f.books.length === 0 ? (
-          <p style={{ color: "var(--text-muted)", fontSize: "14px" }}>No books found.</p>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.9375rem" }}>No books found.</p>
         ) : (
           <div style={{
             display: "grid",

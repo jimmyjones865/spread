@@ -35,7 +35,7 @@ export default function AdminArtists() {
         <button onClick={() => navigate("/admin/artists/new")} style={primaryBtn}>+ New artist</button>
       </div>
 
-      {deleteError && <p style={{ color: "var(--danger)", marginBottom: "1rem", fontSize: "14px" }}>{deleteError}</p>}
+      {deleteError && <p style={{ color: "var(--danger)", marginBottom: "1rem", fontSize: "0.9375rem" }}>{deleteError}</p>}
 
       <input
         value={query}
@@ -51,8 +51,8 @@ export default function AdminArtists() {
           {artists.filter(a => !query || a.name.toLowerCase().includes(query.toLowerCase())).map(artist => (
             <tr key={artist.id} style={{ borderBottom: "1px solid var(--border)" }}>
               <td style={{ padding: "0.6rem 0.5rem" }}>
-                <div style={{ fontSize: "14px", color: "var(--text)", fontWeight: 500 }}>{artist.name}</div>
-                <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                <div style={{ fontSize: "0.9375rem", color: "var(--text)", fontWeight: 500 }}>{artist.name}</div>
+                <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>
                   {[artist.country, `${artist.book_count} ${artist.book_count === 1 ? "book" : "books"}`].filter(Boolean).join(" · ")}
                 </div>
               </td>
@@ -76,7 +76,7 @@ export default function AdminArtists() {
   );
 }
 
-const h1 = { margin: 0, fontSize: "22px", fontWeight: 600, color: "var(--text-bright)" };
-const primaryBtn = { background: "var(--accent-dim)", color: "var(--text-bright)", border: "none", borderRadius: "4px", padding: "0.5rem 1.25rem", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "14px" };
-const ghostBtn = { background: "none", color: "var(--text-muted)", border: "none", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "13px", padding: "0.25rem 0.5rem" };
-const searchInput = { width: "100%", padding: "0.5rem 0.6rem", marginBottom: "1rem", background: "var(--bg-highlight)", border: "1px solid var(--border)", borderRadius: "4px", color: "var(--text)", fontFamily: "var(--font-body)", fontSize: "14px" };
+const h1 = { margin: 0, fontSize: "1.5rem", fontWeight: 600, color: "var(--text-bright)" };
+const primaryBtn = { background: "var(--accent-dim)", color: "var(--text-bright)", border: "none", borderRadius: "4px", padding: "0.5rem 1.25rem", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "0.9375rem" };
+const ghostBtn = { background: "none", color: "var(--text-muted)", border: "none", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "0.875rem", padding: "0.25rem 0.5rem" };
+const searchInput = { width: "100%", padding: "0.5rem 0.6rem", marginBottom: "1rem", background: "var(--bg-highlight)", border: "1px solid var(--border)", borderRadius: "4px", color: "var(--text)", fontFamily: "var(--font-body)", fontSize: "0.9375rem" };

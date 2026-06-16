@@ -87,7 +87,7 @@ export default function ImageManager({ bookId, images, onChange }) {
 
   return (
     <div>
-      {error && <p style={{ color: "var(--danger)", fontSize: "14px" }}>{error}</p>}
+      {error && <p style={{ color: "var(--danger)", fontSize: "0.9375rem" }}>{error}</p>}
 
       <div style={{ display: "flex", gap: "0.75rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
         <button
@@ -206,7 +206,7 @@ function ImageCard({ img, bookId, isCover, onDelete, onRotate, isRotating, versi
           position: "absolute", top: "4px", right: "4px",
           background: "rgba(0,0,0,0.55)", border: "none", borderRadius: "50%",
           color: "#fff", width: "22px", height: "22px", cursor: "pointer",
-          fontSize: "11px", display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: "0.75rem", display: "flex", alignItems: "center", justifyContent: "center",
           lineHeight: 1,
         }}
       >✕</button>
@@ -219,7 +219,7 @@ function ImageCard({ img, bookId, isCover, onDelete, onRotate, isRotating, versi
             position: "absolute", top: "4px", right: "30px",
             background: "rgba(0,0,0,0.55)", border: "none", borderRadius: "50%",
             color: "#fff", width: "22px", height: "22px", cursor: isRotating ? "default" : "pointer",
-            fontSize: "13px", display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: "0.875rem", display: "flex", alignItems: "center", justifyContent: "center",
             lineHeight: 1,
           }}
         >↺</button>
@@ -228,13 +228,13 @@ function ImageCard({ img, bookId, isCover, onDelete, onRotate, isRotating, versi
         <div style={{
           position: "absolute", top: "4px", left: "4px",
           background: "var(--nord10, #5E81AC)", color: "#fff",
-          fontSize: "9px", fontWeight: "700", letterSpacing: "0.06em",
+          fontSize: "0.625rem", fontWeight: "700", letterSpacing: "0.06em",
           padding: "2px 5px", borderRadius: "3px", textTransform: "uppercase",
         }}>Cover</div>
       )}
       <div style={{
         padding: "0.35rem 0.5rem",
-        fontSize: "11px",
+        fontSize: "0.75rem",
         color: "var(--text-muted)",
         fontFamily: "var(--font-mono)",
         lineHeight: 1.5,
@@ -249,5 +249,5 @@ function ImageCard({ img, bookId, isCover, onDelete, onRotate, isRotating, versi
 const uploadBtn = {
   background: "var(--bg-highlight)", color: "var(--text)", border: "1px solid var(--border)",
   borderRadius: "4px", padding: "0.4rem 1rem", cursor: "pointer",
-  fontFamily: "var(--font-body)", fontSize: "14px",
+  fontFamily: "var(--font-body)", fontSize: "0.9375rem",
 };

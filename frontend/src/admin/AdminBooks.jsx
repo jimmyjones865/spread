@@ -72,8 +72,8 @@ export default function AdminBooks() {
                   ) : (
                     <div style={{ width: 120, height: 160, background: "var(--bg-highlight)", borderRadius: "3px" }} />
                   )}
-                  <div style={{ fontSize: "12px", color: "var(--text)", fontWeight: 500, marginTop: "0.4rem", lineHeight: 1.3 }}>{book.title}</div>
-                  <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>{book.artist.name}</div>
+                  <div style={{ fontSize: "0.8125rem", color: "var(--text)", fontWeight: 500, marginTop: "0.4rem", lineHeight: 1.3 }}>{book.title}</div>
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{book.artist.name}</div>
                 </div>
               ))}
             </div>
@@ -97,10 +97,10 @@ export default function AdminBooks() {
                     )}
                   </td>
                   <td style={{ padding: "0.6rem 0.5rem" }}>
-                    <div style={{ fontSize: "14px", color: "var(--text)", fontWeight: 500 }}>{book.title}</div>
-                    <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>{book.artist.name}{book.year ? ` · ${book.year}` : ""}</div>
+                    <div style={{ fontSize: "0.9375rem", color: "var(--text)", fontWeight: 500 }}>{book.title}</div>
+                    <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>{book.artist.name}{book.year ? ` · ${book.year}` : ""}</div>
                   </td>
-                  <td style={{ padding: "0.6rem 0.5rem", fontSize: "12px" }}>
+                  <td style={{ padding: "0.6rem 0.5rem", fontSize: "0.8125rem" }}>
                     <span style={{ color: STATUS_COLOR[book.status] }}>{STATUS_LABEL[book.status]}</span>
                     {book.hidden && <span style={{ marginLeft: "0.5rem", color: "var(--text-muted)", opacity: 0.6 }}>hidden</span>}
                   </td>
@@ -126,19 +126,19 @@ export default function AdminBooks() {
   );
 }
 
-const h1 = { margin: 0, fontSize: "22px", fontWeight: 600, color: "var(--text-bright)" };
+const h1 = { margin: 0, fontSize: "1.5rem", fontWeight: 600, color: "var(--text-bright)" };
 const primaryBtn = {
   background: "var(--accent-dim)", color: "var(--text-bright)", border: "none",
   borderRadius: "4px", padding: "0.5rem 1.25rem", cursor: "pointer",
-  fontFamily: "var(--font-body)", fontSize: "14px",
+  fontFamily: "var(--font-body)", fontSize: "0.9375rem",
 };
 const ghostBtn = {
   background: "none", color: "var(--text-muted)", border: "none",
-  cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "13px",
+  cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "0.875rem",
   padding: "0.25rem 0.5rem",
 };
 const searchInput = {
   width: "100%", padding: "0.5rem 0.6rem", marginBottom: "1rem",
   background: "var(--bg-highlight)", border: "1px solid var(--border)",
-  borderRadius: "4px", color: "var(--text)", fontFamily: "var(--font-body)", fontSize: "14px",
+  borderRadius: "4px", color: "var(--text)", fontFamily: "var(--font-body)", fontSize: "0.9375rem",
 };

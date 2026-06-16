@@ -22,6 +22,6 @@ function btnStyle(bg) {
   return {
     background: bg, color: "var(--text-bright)", border: "none",
     borderRadius: "4px", padding: "0.5rem 1.25rem", cursor: "pointer",
-    fontFamily: "var(--font-body)", fontSize: "14px",
+    fontFamily: "var(--font-body)", fontSize: "0.9375rem",
   };
 }

@@ -35,7 +35,7 @@ export default function LinkManager({ bookId, links, onChanged }) {
             </>
           ) : (
             <>
-              <span style={{ flex: 2, fontSize: "13px", color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <span style={{ flex: 2, fontSize: "0.875rem", color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 <a href={link.url} target="_blank" rel="noreferrer" style={{ color: "var(--accent)" }}>{link.label || link.url}</a>
               </span>
               <button onClick={() => { setEditId(link.id); setEditUrl(link.url); setEditLabel(link.label ?? ""); }} style={ghostBtn}>Edit</button>
@@ -53,4 +53,4 @@ export default function LinkManager({ bookId, links, onChanged }) {
   );
 }
 
-const ghostBtn = { background: "none", color: "var(--text-muted)", border: "1px solid var(--border)", borderRadius: "4px", padding: "0.3rem 0.6rem", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "13px" };
+const ghostBtn = { background: "none", color: "var(--text-muted)", border: "1px solid var(--border)", borderRadius: "4px", padding: "0.3rem 0.6rem", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "0.875rem" };

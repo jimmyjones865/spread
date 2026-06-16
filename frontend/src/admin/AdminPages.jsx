@@ -60,7 +60,7 @@ export default function AdminPages() {
       {editing && (
         <div style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: "6px", padding: "1.25rem", marginBottom: "1.5rem" }}>
           <h2 style={sectionTitle}>{isNew ? "New page" : "Edit page"}</h2>
-          {error && <p style={{ color: "var(--danger)", fontSize: "14px" }}>{error}</p>}
+          {error && <p style={{ color: "var(--danger)", fontSize: "0.9375rem" }}>{error}</p>}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "0.75rem" }}>
             <div>
               <label style={labelStyle}>Slug (URL path)</label>
@@ -76,7 +76,7 @@ export default function AdminPages() {
             <textarea
               value={form.body}
               onChange={e => setForm(f => ({ ...f, body: e.target.value }))}
-              style={{ ...inputStyle, height: "240px", resize: "vertical", fontFamily: "var(--font-mono)", fontSize: "13px" }}
+              style={{ ...inputStyle, height: "240px", resize: "vertical", fontFamily: "var(--font-mono)", fontSize: "0.875rem" }}
             />
           </div>
           <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -93,8 +93,8 @@ export default function AdminPages() {
           {pages.map(page => (
             <tr key={page.id} style={{ borderBottom: "1px solid var(--border)" }}>
               <td style={{ padding: "0.6rem 0.5rem" }}>
-                <div style={{ fontSize: "14px", color: "var(--text)", fontWeight: 500 }}>{page.title}</div>
-                <div style={{ fontSize: "12px", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>/{page.slug}</div>
+                <div style={{ fontSize: "0.9375rem", color: "var(--text)", fontWeight: 500 }}>{page.title}</div>
+                <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>/{page.slug}</div>
               </td>
               <td style={{ padding: "0.6rem 0.5rem", textAlign: "right" }}>
                 <button onClick={() => startEdit(page)} style={ghostBtn}>Edit</button>
@@ -116,9 +116,9 @@ export default function AdminPages() {
   );
 }
 
-const h1 = { margin: 0, fontSize: "22px", fontWeight: 600, color: "var(--text-bright)" };
-const sectionTitle = { margin: "0 0 1rem", fontSize: "15px", fontWeight: 600, color: "var(--text)" };
-const labelStyle = { display: "block", fontSize: "13px", color: "var(--text-muted)", marginBottom: "0.3rem" };
-const inputStyle = { width: "100%", padding: "0.5rem 0.6rem", background: "var(--bg-highlight)", border: "1px solid var(--border)", borderRadius: "4px", color: "var(--text)", fontFamily: "var(--font-body)", fontSize: "14px", boxSizing: "border-box" };
-const primaryBtn = { background: "var(--accent-dim)", color: "var(--text-bright)", border: "none", borderRadius: "4px", padding: "0.5rem 1.25rem", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "14px" };
-const ghostBtn = { background: "none", color: "var(--text-muted)", border: "none", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "13px", padding: "0.25rem 0.5rem" };
+const h1 = { margin: 0, fontSize: "1.5rem", fontWeight: 600, color: "var(--text-bright)" };
+const sectionTitle = { margin: "0 0 1rem", fontSize: "1rem", fontWeight: 600, color: "var(--text)" };
+const labelStyle = { display: "block", fontSize: "0.875rem", color: "var(--text-muted)", marginBottom: "0.3rem" };
+const inputStyle = { width: "100%", padding: "0.5rem 0.6rem", background: "var(--bg-highlight)", border: "1px solid var(--border)", borderRadius: "4px", color: "var(--text)", fontFamily: "var(--font-body)", fontSize: "0.9375rem", boxSizing: "border-box" };
+const primaryBtn = { background: "var(--accent-dim)", color: "var(--text-bright)", border: "none", borderRadius: "4px", padding: "0.5rem 1.25rem", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "0.9375rem" };
+const ghostBtn = { background: "none", color: "var(--text-muted)", border: "none", cursor: "pointer", fontFamily: "var(--font-body)", fontSize: "0.875rem", padding: "0.25rem 0.5rem" };

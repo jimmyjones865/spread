@@ -1,6 +1,6 @@
 import useLightbox from "../hooks/useLightbox";
 
-const topBtn = { background: "none", border: "none", color: "rgba(255,255,255,0.85)", fontSize: "15px", cursor: "pointer", padding: "2px 4px", fontFamily: "var(--font-body)" };
+const topBtn = { background: "none", border: "none", color: "rgba(255,255,255,0.85)", fontSize: "1rem", cursor: "pointer", padding: "2px 4px", fontFamily: "var(--font-body)" };
 
 // Idle fade: ease out to a hint, but snap back instantly on input — a slow fade-in reads as lag.
 function idleFade(idle) {
@@ -43,7 +43,7 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
         style={{ position: "fixed", top: 0, left: 0, right: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "0.9rem 1.25rem", pointerEvents: "none" }}
       >
         {multi && (
-          <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)", letterSpacing: "0.05em", ...idleFade(idle) }}>
+          <span style={{ fontSize: "0.875rem", color: "rgba(255,255,255,0.5)", letterSpacing: "0.05em", ...idleFade(idle) }}>
             {idx + 1} / {images.length}
           </span>
         )}
@@ -52,7 +52,7 @@ export default function Lightbox({ images, idx, onClose, onPrev, onNext }) {
             ref={closeButtonRef}
             onClick={e => { e.stopPropagation(); onClose(); }}
             className="lightbox-close-btn"
-            style={{ ...topBtn, fontSize: "20px", ...idleFade(idle) }}
+            style={{ ...topBtn, fontSize: "1.3125rem", ...idleFade(idle) }}
             aria-label="Close image viewer"
           >×</button>
         </div>
@@ -97,7 +97,7 @@ function arrowBtn(side, idle) {
     background: "none",
     border: "none",
     color: "rgba(255,255,255,0.6)",
-    fontSize: "48px",
+    fontSize: "3.0625rem",
     cursor: "pointer",
     lineHeight: 1,
     padding: "0 0.5rem",

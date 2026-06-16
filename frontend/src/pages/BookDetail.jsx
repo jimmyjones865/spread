@@ -182,5 +182,5 @@ export default function BookDetail() {
   );
 }
 
-const backLink = { fontSize: "13px", color: "var(--text-muted)", textDecoration: "none" };
-const navBtn = { background: "none", border: "none", padding: "0.5rem 0", cursor: "pointer", color: "var(--text-muted)", fontFamily: "var(--font-body)", fontSize: "13px", opacity: 0.6 };
+const backLink = { fontSize: "0.875rem", color: "var(--text-muted)", textDecoration: "none" };
+const navBtn = { background: "none", border: "none", padding: "0.5rem 0", cursor: "pointer", color: "var(--text-muted)", fontFamily: "var(--font-body)", fontSize: "0.875rem", opacity: 0.6 };
