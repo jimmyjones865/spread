@@ -60,6 +60,7 @@ export default function BookDetail() {
     if (!rightRef.current) return;
     if (leftRef.current?.contains(e.target)) return;
     if (rightRef.current.contains(e.target)) return;
+    e.preventDefault();
     const delta = e.deltaMode === 1 ? e.deltaY * 40 : e.deltaY;
     rightRef.current.scrollBy({ top: delta, behavior: "instant" });
   }, []);
