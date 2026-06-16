@@ -2,6 +2,12 @@
 
 Self-hosted photobook gallery. FastAPI backend, React frontend, SQLite, Docker Compose.
 
+- **Image ladder** — AVIF + WebP at 7 widths (400–4000px), quality-tuned per rung, no upscaling. Browser picks the sharpest variant it can actually display.
+- **Lightbox racing** — cards prefetch on approach; BookDetail prefetches adjacent books immediately; lightbox loads at exact DPR-aware display size, not a larger rung.
+- **BookDetail scroll** — two-column layout where scrolling anywhere (including dead space) drives the image column. No Safari rubber band.
+- **Theme sort** — gallery order is defined by tag combinations, not by individual book fields. Reorderable in admin; changes take effect immediately.
+- **Scraper** — Jina + parallel raw HTML + Shopify product JSON, deduplicates across CDN size variants and cross-domain mirrors.
+
 ---
 
 ## Setup
