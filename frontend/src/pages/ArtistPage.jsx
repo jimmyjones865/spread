@@ -90,7 +90,7 @@ export default function ArtistPage() {
                     </div>
                   )}
                 </div>
-                <div style={{ fontSize: "12px", color: "var(--text)", fontWeight: 500, lineHeight: 1.3, marginBottom: "2px" }}>
+                <div style={{ fontSize: "12px", color: "var(--text)", fontWeight: 700, lineHeight: 1.3, marginBottom: "2px" }}>
                   {book.title}
                 </div>
                 {book.year && (

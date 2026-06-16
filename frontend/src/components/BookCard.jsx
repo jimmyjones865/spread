@@ -56,7 +56,7 @@ export default function BookCard({ book, onClick, priority = false }) {
           </div>
         )}
       </div>
-      <div style={{ fontSize: "12px", color: "var(--text)", fontWeight: 500, lineHeight: 1.3, marginBottom: "2px" }}>
+      <div style={{ fontSize: "12px", color: "var(--text)", fontWeight: 700, lineHeight: 1.3, marginBottom: "2px" }}>
         {book.title}
       </div>
       <div style={{ fontSize: "11px", color: "var(--text-muted)", lineHeight: 1.3 }}>

@@ -1,12 +1,20 @@
-@import "@fontsource/inter/400.css";
-@import "@fontsource/inter/500.css";
-@import "@fontsource/inter/600.css";
-@import "@fontsource/inter/700.css";
-
-/* JuliaMono — self-host the woff2 if privacy is a concern */
 @font-face {
-  font-family: "JuliaMono";
-  src: url("/JuliaMono-Regular.woff2") format("woff2");
+  font-family: "SiteDisplay";
+  src: url("/font-display.woff2") format("woff2");
+  font-weight: 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SiteDisplay";
+  src: url("/font-body.woff2") format("woff2");
+  font-weight: 300;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "SiteMono";
+  src: url("/font-mono.woff2") format("woff2");
   font-weight: 400;
   font-display: swap;
 }
@@ -18,9 +26,9 @@
 /* ── CSS custom properties ───────────────────────────────────────────────── */
 
 :root {
-  --font-display: "Inter", sans-serif;
-  --font-body:    "Inter", sans-serif;
-  --font-mono:    "JuliaMono", monospace;
+  --font-display: "SiteDisplay", sans-serif;
+  --font-body:    "SiteDisplay", sans-serif;
+  --font-mono:    "SiteMono", monospace;
 }
 
 [data-theme="dark"] {
@@ -53,6 +61,7 @@
 
 html {
   font-family: var(--font-body);
+  font-weight: 300;
   background-color: var(--bg);
   color: var(--text);
 }

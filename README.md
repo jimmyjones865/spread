@@ -92,6 +92,7 @@ Everything else (edition label, signed, numbered, print run, ISBN, description, 
 
 ```caddyfile
 spread.example.com {
+    encode zstd gzip
     reverse_proxy localhost:8000 {
         header_up X-Real-IP {remote_host}
     }
