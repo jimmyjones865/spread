@@ -57,16 +57,18 @@ export default function BookDetail() {
   const closeLightbox = useCallback(() => setLightboxIdx(null), []);
 
   useEffect(() => {
-    document.body.style.overscrollBehavior = "none";
-    return () => { document.body.style.overscrollBehavior = ""; };
-  }, []);
-
-  const handleOuterWheel = useCallback((e) => {
-    if (!rightRef.current) return;
-    if (leftRef.current?.contains(e.target)) return;
-    if (rightRef.current.contains(e.target)) return;
-    const delta = e.deltaMode === 1 ? e.deltaY * 40 : e.deltaY;
-    rightRef.current.scrollBy({ top: delta, behavior: "instant" });
+    function handler(e) {
+      e.preventDefault();
+      if (!rightRef.current) return;
+      const delta = e.deltaMode === 1 ? e.deltaY * 40 : e.deltaY;
+      if (leftRef.current?.contains(e.target)) {
+        leftRef.current.scrollBy({ top: delta, behavior: "instant" });
+      } else {
+        rightRef.current.scrollBy({ top: delta, behavior: "instant" });
+      }
+    }
+    document.addEventListener("wheel", handler, { passive: false });
+    return () => document.removeEventListener("wheel", handler);
   }, []);
 
   useEffect(() => {
@@ -168,7 +170,7 @@ export default function BookDetail() {
           {bookNav}
         </div>
       ) : (
-        <div onWheel={handleOuterWheel} style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+        <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
           <div ref={leftRef} className="no-scrollbar" style={{ width: "28%", minWidth: "240px", maxWidth: "360px", height: "100vh", overflowY: "auto", overscrollBehavior: "none", borderRight: "1px solid var(--border)", flexShrink: 0 }}>
             <div style={{ padding: "2rem 2rem 3rem" }}>
               <div style={{ marginBottom: "0" }}>
