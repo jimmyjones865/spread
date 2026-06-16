@@ -164,7 +164,7 @@ export default function BookDetail() {
         </div>
       ) : (
         <div onWheel={handleOuterWheel} style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-          <div ref={leftRef} className="no-scrollbar" style={{ width: "28%", minWidth: "240px", maxWidth: "360px", height: "100vh", overflowY: "auto", borderRight: "1px solid var(--border)", flexShrink: 0 }}>
+          <div ref={leftRef} className="no-scrollbar" style={{ width: "28%", minWidth: "240px", maxWidth: "360px", height: "100vh", overflowY: "auto", overscrollBehavior: "none", borderRight: "1px solid var(--border)", flexShrink: 0 }}>
             <div style={{ padding: "2rem 2rem 3rem" }}>
               <div style={{ marginBottom: "0" }}>
                 <a href="/" onClick={e => { e.preventDefault(); navigate("/"); }} style={backLink}>← back</a>
@@ -172,7 +172,7 @@ export default function BookDetail() {
               {metadata}
             </div>
           </div>
-          <div ref={rightRef} className="no-scrollbar" style={{ flex: 1, overflowY: "auto", height: "100vh", maxWidth: imgColWidth }}>
+          <div ref={rightRef} className="no-scrollbar" style={{ flex: 1, overflowY: "auto", overscrollBehavior: "none", height: "100vh", maxWidth: imgColWidth }}>
             {imageList}
             {bookNav}
           </div>
