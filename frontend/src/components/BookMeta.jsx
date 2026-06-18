@@ -21,7 +21,7 @@ export default function BookMeta({ book }) {
 
   return (
     <div style={{ marginTop: "1.5rem" }}>
-      <h1 style={{ margin: "0 0 0.25rem", fontSize: "1.375rem", fontWeight: 700, color: "var(--text-bright)", lineHeight: 1.3 }}>
+      <h1 style={{ margin: "0 0 0.25rem", fontFamily: "var(--font-display)", fontSize: "1.375rem", fontWeight: 500, color: "var(--text-bright)", lineHeight: 1.3 }}>
         {book.title}
       </h1>
       <Link to={`/artists/${book.artist.slug}`} style={{ fontSize: "0.9375rem", color: "var(--accent)", textDecoration: "none", display: "block", marginBottom: "1rem" }}>

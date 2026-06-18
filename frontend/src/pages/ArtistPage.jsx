@@ -35,7 +35,7 @@ export default function ArtistPage() {
           <ThemeToggle />
         </div>
 
-        <h1 style={{ margin: "1.5rem 0 0.35rem", fontSize: "1.875rem", fontWeight: 700, color: "var(--text-bright)" }}>
+        <h1 style={{ margin: "1.5rem 0 0.35rem", fontFamily: "var(--font-display)", fontSize: "1.875rem", fontWeight: 500, color: "var(--text-bright)" }}>
           {artist.name}
         </h1>
 
@@ -90,7 +90,7 @@ export default function ArtistPage() {
                     </div>
                   )}
                 </div>
-                <div style={{ fontSize: "0.8125rem", color: "var(--text)", fontWeight: 700, lineHeight: 1.3, marginBottom: "2px" }}>
+                <div style={{ fontFamily: "var(--font-bold)", fontSize: "0.8125rem", color: "var(--text)", fontWeight: 700, lineHeight: 1.3, marginBottom: "2px" }}>
                   {book.title}
                 </div>
                 {book.year && (

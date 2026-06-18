@@ -34,7 +34,7 @@ export default function StaticPage() {
           <Link to="/" style={{ fontSize: "0.875rem", color: "var(--text-muted)", textDecoration: "none" }}>← Spread</Link>
           <ThemeToggle />
         </div>
-        <h1 style={{ margin: "0 0 2rem", fontSize: "1.75rem", fontWeight: 700, color: "var(--text-bright)" }}>
+        <h1 style={{ margin: "0 0 2rem", fontFamily: "var(--font-display)", fontSize: "1.75rem", fontWeight: 500, color: "var(--text-bright)" }}>
           {page.title}
         </h1>
         <ReactMarkdown components={mdComponents}>{page.body}</ReactMarkdown>
@@ -45,9 +45,9 @@ export default function StaticPage() {
 }
 
 const mdComponents = {
-  h1: ({ children }) => <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text-bright)", margin: "1.5rem 0 0.75rem" }}>{children}</h1>,
-  h2: ({ children }) => <h2 style={{ fontSize: "1.25rem", fontWeight: 600, color: "var(--text-bright)", margin: "1.5rem 0 0.5rem" }}>{children}</h2>,
-  h3: ({ children }) => <h3 style={{ fontSize: "1.0625rem", fontWeight: 600, color: "var(--text-bright)", margin: "1.25rem 0 0.4rem" }}>{children}</h3>,
+  h1: ({ children }) => <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 500, color: "var(--text-bright)", margin: "1.5rem 0 0.75rem" }}>{children}</h1>,
+  h2: ({ children }) => <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 500, color: "var(--text-bright)", margin: "1.5rem 0 0.5rem" }}>{children}</h2>,
+  h3: ({ children }) => <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.0625rem", fontWeight: 500, color: "var(--text-bright)", margin: "1.25rem 0 0.4rem" }}>{children}</h3>,
   p: ({ children }) => <p style={{ margin: "0 0 1rem", lineHeight: 1.7, fontSize: "1rem", color: "var(--text)" }}>{children}</p>,
   a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer" style={{ color: "var(--accent)" }}>{children}</a>,
   ul: ({ children }) => <ul style={{ margin: "0 0 1rem", paddingLeft: "1.5rem" }}>{children}</ul>,

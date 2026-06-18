@@ -1,7 +1,7 @@
 @font-face {
-  font-family: "SiteDisplay";
-  src: url("/font-display.woff2") format("woff2");
-  font-weight: 900;
+  font-family: "SiteHeadline";
+  src: url("/font-display-medium.woff2") format("woff2");
+  font-weight: 500;
   font-display: swap;
 }
 
@@ -9,6 +9,15 @@
   font-family: "SiteDisplay";
   src: url("/font-body.woff2") format("woff2");
   font-weight: 300;
+  font-display: swap;
+}
+
+/* Standard Bold — isolated family, used only by gallery card titles (so it can't
+   leak into the many weight-600/700 labels that resolve to Standard Black). */
+@font-face {
+  font-family: "SiteBold";
+  src: url("/font-body-bold.woff2") format("woff2");
+  font-weight: 700;
   font-display: swap;
 }
 
@@ -33,7 +42,8 @@
 /* ── CSS custom properties ───────────────────────────────────────────────── */
 
 :root {
-  --font-display: "SiteDisplay", sans-serif;
+  --font-display: "SiteHeadline", sans-serif;
+  --font-bold:    "SiteBold", sans-serif;
   --font-body:    "SiteDisplay", sans-serif;
   --font-mono:    "SiteMono", monospace;
 }

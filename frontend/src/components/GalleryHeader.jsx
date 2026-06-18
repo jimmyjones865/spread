@@ -28,7 +28,7 @@ export default function GalleryHeader({
   return (
     <div style={{ padding: isMobile ? "2rem 1.5rem 1.5rem" : "2rem 2.5rem 1.5rem", display: "flex", alignItems: "center", gap: "0.6rem" }}>
       {!searchOpen && (
-        <h1 style={{ margin: 0, fontSize: "1.625rem", fontWeight: 700, color: "var(--text-bright)", letterSpacing: "0.02em", flex: 1 }}>
+        <h1 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "1.625rem", fontWeight: 500, color: "var(--text-bright)", letterSpacing: "0.02em", flex: 1 }}>
           {siteTitle}
         </h1>
       )}
