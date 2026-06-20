@@ -67,13 +67,20 @@ def run(catalog_path: str, db_url: str) -> None:
             db.add(artist)
             db.flush()
 
-        # Book slug from title
-        book_slug = unique_slug(title, Book, db)
-
-        # Check for existing book by slug (idempotent)
-        if db.query(Book).filter(Book.slug == book_slug).first():
+        # Check for an existing book by title+artist before minting a slug —
+        # unique_slug() always returns a free slug by construction, so
+        # checking *after* calling it can never find a match and re-running
+        # this script would silently re-import every book as a duplicate.
+        existing = (
+            db.query(Book)
+            .filter(Book.title == title, Book.artist_id == artist.id)
+            .first()
+        )
+        if existing:
             skipped_books += 1
             continue
+
+        book_slug = unique_slug(title, Book, db)
 
         book = Book(
             title=title,
